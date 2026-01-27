@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIZA ELITE | Cyber Command</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #020b14; 
+            --card-bg: #051322; 
+            --accent: #00f2ff; 
+            --accent-dim: rgba(0, 242, 255, 0.1);
+            --text: #e0f7fa;
+            --text-dim: #5c7c8a;
+            --border: #0a2540;
+            --trial-color: #ff9f43;
+            --success: #2ed573;
+            --danger: #ff4757;
+            /* New Styles for Tickets */
+            --green-neon: #00F5C4;
+        }
+
+        * { box-sizing: border-box; font-family: 'Cairo', sans-serif; outline: none; transition: 0.2s; }
+        
+        body { 
+            background-color: var(--bg); color: var(--text); margin: 0; min-height: 100vh;
+            background-image: linear-gradient(rgba(0, 242, 255, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 242, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: #005f6b; border-radius: 3px; }
+
+        /* --- Login Styles --- */
+        #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; background: radial-gradient(circle at center, #0a1f35 0%, #020b14 100%); }
+        .login-box { background: rgba(5, 19, 34, 0.95); padding: 50px 40px; border: 1px solid var(--accent); border-radius: 12px; width: 90%; max-width: 420px; text-align: center; box-shadow: 0 0 40px rgba(0, 242, 255, 0.1); }
+        
+        input, select, textarea { width: 100%; padding: 12px; margin: 10px 0; background: #02080e; border: 1px solid #1c3d5a; color: var(--accent); font-family: monospace; font-size: 1rem; border-radius: 6px; }
+        input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-dim); }
+
+        .btn { padding: 10px 20px; border: none; cursor: pointer; font-weight: bold; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent); }
+        .btn-primary:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent-dim); }
+        .btn-danger { background: rgba(255, 71, 87, 0.1); color: var(--danger); border: 1px solid var(--danger); }
+        .btn-success { background: rgba(46, 213, 115, 0.1); color: var(--success); border: 1px solid var(--success); }
+        .btn-trial { background: rgba(255, 159, 67, 0.1); color: var(--trial-color); border: 1px solid var(--trial-color); }
+        .btn-trial:hover { background: var(--trial-color); color: #000; }
+
+        #admin-panel { display: none; padding: 25px; max-width: 1700px; margin: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; background: linear-gradient(90deg, #051322 0%, transparent 100%); padding: 20px; border-radius: 8px; border-right: 4px solid var(--accent); margin-bottom: 30px; }
+
+        /* --- Dashboard Charts --- */
+        .charts-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .chart-card { background: var(--card-bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border); height: 300px; position: relative; }
+        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-box { background: var(--card-bg); border: 1px solid var(--border); padding: 20px; border-radius: 8px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .stat-num { font-size: 2rem; color: var(--accent); font-weight: 900; }
+        .stat-lbl { font-size: 0.8rem; color: var(--text-dim); letter-spacing: 1px; margin-top: 5px; }
+
+        /* --- New Ticket System Styles --- */
+        #tickets-view { display: none; }
+        .ticket-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .ticket-stat-card { background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; border: 1px solid rgba(0,245,196,0.2); text-align: center; }
+        
+        .ticket-tabs { display: flex; gap: 15px; margin-bottom: 20px; }
+        .ticket-tab-btn { background: transparent; border: 1px solid var(--green-neon); color: var(--green-neon); padding: 10px 20px; border-radius: 20px; cursor: pointer; opacity: 0.6; transition: 0.3s; }
+        .ticket-tab-btn.active { background: var(--green-neon); color: #000; opacity: 1; font-weight: bold; }
+
+        .tickets-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); }
+        .ticket-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 20px; position: relative; transition: 0.3s; }
+        .ticket-card:hover { border-color: var(--green-neon); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0, 245, 196, 0.1); }
+        
+        .t-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9em; color: #aaa; }
+        .t-subject { color: var(--green-neon); font-size: 1.2em; font-weight: bold; margin-bottom: 10px; }
+        .t-msg { background: rgba(0,0,0,0.4); padding: 15px; border-radius: 10px; margin-bottom: 15px; line-height: 1.6; border-right: 3px solid var(--green-neon); color: #fff; }
+        .t-info { display: flex; gap: 10px; font-size: 0.85em; color: #ccc; margin-bottom: 15px; flex-wrap: wrap; }
+        .t-info span { background: rgba(255,255,255,0.1); padding: 3px 8px; border-radius: 5px; }
+
+        .admin-response { background: rgba(0, 245, 196, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px; border: 1px dashed var(--green-neon); color: #fff; }
+
+        .admin-actions { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; flex-wrap: wrap; }
+        .btn-action { padding: 8px 15px; border-radius: 8px; border: none; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 8px; color: white; transition: 0.3s; }
+        
+        .btn-delete-all { background: rgba(255, 71, 87, 0.15); color: #ff4757; border: 1px solid #ff4757; }
+        .btn-delete-all:hover { background: #ff4757; color: white; }
+        .btn-delete-reply { background: rgba(255, 165, 2, 0.15); color: #ffa502; border: 1px solid #ffa502; }
+        .btn-delete-reply:hover { background: #ffa502; color: white; }
+        .btn-reply-main { background: rgba(0, 245, 196, 0.15); color: #00F5C4; border: 1px solid #00F5C4; flex-grow: 1; justify-content: center; }
+        .btn-reply-main:hover { background: #00F5C4; color: #000; }
+
+        .badge-replied { background: #00F5C4; color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .badge-pending { background: #ff4757; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+
+        /* --- Team View --- */
+        #team-view { display: none; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .admin-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 25px; text-align: center; position: relative; overflow: hidden; }
+        .admin-card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--accent); }
+        .admin-stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
+
+        /* --- Common Table --- */
+        .data-container { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1100px; }
+        th { text-align: right; padding: 15px; background: rgba(0, 242, 255, 0.03); color: var(--accent); border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: middle; }
+        
+        .act-btn { border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.9rem; margin-left: 5px; }
+        .btn-c-code { background: #00a8ff; } .btn-c-dev { background: #0abde3; } .btn-eject { background: #ffa502; }
+        .btn-dis { background: #747d8c; } .btn-del { background: #ff4757; } .btn-ban { background: #8e44ad; } .btn-edt { background: #2ed573; }
+
+        /* --- Modals --- */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: #071a2e; padding: 35px; width: 95%; max-width: 500px; border: 1px solid var(--accent); border-radius: 10px; }
+
+        .nav-btn { background: transparent; border: 1px solid var(--border); color: var(--text-dim); padding: 8px 20px; border-radius: 20px; cursor: pointer; }
+        .nav-btn.active { background: var(--accent); color: #000; font-weight: bold; border-color: var(--accent); box-shadow: 0 0 10px var(--accent-dim); }
+        
+        .nav-tab { background: transparent; color: var(--text-dim); padding: 10px 15px; border: none; cursor: pointer; border-bottom: 2px solid transparent; font-size: 1.1rem; }
+        .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+    </style>
+</head>
+<body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <i class="fas fa-shield-alt fa-4x" style="color: var(--accent); margin-bottom: 20px;"></i>
+            <h2 style="color: #fff; margin: 0 0 10px;">SYSTEM ACCESS</h2>
+            <input type="email" id="email" placeholder="ADMIN ID">
+            <input type="password" id="password" placeholder="PIN CODE">
+            <button class="btn btn-primary" style="width: 100%; padding: 15px; margin-top: 20px;" onclick="handleLogin()">LOGIN</button>
+        </div>
+    </div>
+
+    <div id="admin-panel">
+        <div class="header">
+            <div>
+                <h3 id="welcome-msg" style="margin:0; color: #fff;">SYSTEM ONLINE</h3>
+                <div id="role-label" style="color: var(--accent); opacity: 0.8; margin-top: 5px;"></div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-trial" onclick="openCreateModal('trial')"><i class="fas fa-bolt"></i> تجربة سريعة</button>
+                <button class="btn btn-success" onclick="openCreateModal('normal')"><i class="fas fa-plus"></i> كود جديد</button>
+                <button class="btn btn-danger" onclick="logout()"><i class="fas fa-power-off"></i></button>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 20px; border-bottom: 1px solid var(--border);">
+            <button class="nav-tab active" onclick="switchMainTab('dashboard')"><i class="fas fa-tachometer-alt"></i> التحكم</button>
+            <button class="nav-tab" onclick="switchMainTab('tickets')"><i class="fas fa-envelope-open-text"></i> الرسايل (Support)</button>
+            <button class="nav-tab" onclick="switchMainTab('team')"><i class="fas fa-users"></i> فريق العمل</button>
+        </div>
+
+        <div id="dashboard-view">
+            <div class="charts-container" id="charts-area">
+                <div class="chart-card"><canvas id="usersChart"></canvas></div>
+                <div class="chart-card"><canvas id="financeChart"></canvas></div>
+            </div>
+
+            <div id="stats-area" class="stats-bar" style="display: none;"></div>
+
+            <div class="sub-nav">
+                <button class="nav-btn active" onclick="setView('active', this)">مفعل</button>
+                <button class="nav-btn" onclick="setView('trial', this)" style="border-color:var(--trial-color)">تجريبي</button>
+                <button class="nav-btn" onclick="setView('disabled', this)">معطل</button>
+                <button class="nav-btn" onclick="setView('expired', this)">منتهي</button>
+                <button class="nav-btn" onclick="setView('banned', this)">محظور</button>
+            </div>
+            
+            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="بحث في قاعدة البيانات..." style="width:100%; padding: 15px; background: #051322; color: #fff; border: 1px solid var(--border); margin-bottom: 20px;">
+            
+            <div class="data-container">
+                <table id="main-table">
+                    <thead id="table-head"></thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tickets-view">
+            <div class="ticket-stats-row">
+                <div class="ticket-stat-card">
+                    <h3 id="count-pending" style="font-size:2.5em; margin:0; color:#ff4757;">0</h3>
+                    <p style="margin:5px 0 0; color:#aaa">لم يتم الرد (جديد)</p>
+                </div>
+                <div class="ticket-stat-card">
+                    <h3 id="count-replied" style="font-size:2.5em; margin:0; color:var(--green-neon);">0</h3>
+                    <p style="margin:5px 0 0; color:#aaa">تم الرد (أرشيف)</p>
+                </div>
+            </div>
+
+            <div class="ticket-tabs">
+                <button class="ticket-tab-btn active" onclick="switchTicketTab('pending', this)">رسايل جديدة 🔥</button>
+                <button class="ticket-tab-btn" onclick="switchTicketTab('replied', this)">الأرشيف (تم الرد)</button>
+            </div>
+
+            <div id="tickets-container" class="tickets-grid">
+                <p style="text-align:center; opacity:0.5; grid-column:1/-1;">جاري سحب البيانات من السيرفر...</p>
+            </div>
+        </div>
+        <div id="team-view"></div>
+    </div>
+
+    <div id="actionModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modal-title" style="color: var(--accent); margin-top:0; border-bottom:1px solid var(--border); padding-bottom:15px">DATA ENTRY</h2>
+            <input type="hidden" id="edit-mode-id">
+            <label style="color:#888;">اسم الطالب</label>
+            <input type="text" id="m-name">
+            <label style="color:#888;">الشعبة</label>
+            <select id="m-section">
+                <option value="أدبي">أدبي</option>
+                <option value="علمي علوم">علمي علوم</option>
+                <option value="علمي رياضة">علمي رياضة</option>
+                <option value="أزهر">أزهر</option>
+            </select>
+            <label style="color:#888;">السعر</label>
+            <input type="number" id="m-price" value="0">
+            <div id="duration-section">
+                <label style="color:#888;">المدة</label>
+                <select id="m-duration" onchange="toggleCustomDays(this.value)">
+                    <option value="month">شهر (30 يوم)</option>
+                    <option value="trial">تجريبي (ساعة)</option>
+                    <option value="custom">مخصص</option>
+                </select>
+                <input type="number" id="m-days" placeholder="عدد الأيام" style="display:none;">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button class="btn btn-success" style="flex:2" onclick="submitSave()">حفظ</button>
+                <button class="btn btn-danger" style="flex:1" onclick="closeModal()">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <i class="fas fa-check-circle fa-4x" style="color: var(--accent);"></i>
+            <h2 style="color: #fff; margin:10px 0">CREATED</h2>
+            <div id="generated-code" style="background: #02080e; border: 2px dashed var(--accent); padding: 20px; font-size: 2rem; color: var(--accent); font-family: monospace; margin: 20px 0;"></div>
+            <button class="btn btn-primary" onclick="copyAndClose()"><i class="fas fa-copy"></i> Copy & Close</button>
+        </div>
+    </div>
+
+    <div id="reply-modal" class="modal">
+        <div class="modal-content" style="border-color: var(--green-neon); box-shadow: 0 0 20px rgba(0, 245, 196, 0.1);">
+            <h3 style="margin-top:0; color:var(--green-neon)">✍️ كتابة الرد</h3>
+            <p style="font-size:0.8em; opacity:0.7;">الرد هيوصل للطالب فوراً.</p>
+            <div id="reply-to-info" style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:10px; font-size:0.9em; color:#ccc;"></div>
+            <textarea id="reply-text" placeholder="اكتب ردك هنا..." rows="5"></textarea>
+            <div style="display:flex; gap:10px;">
+                <button onclick="sendReplySubmit()" class="btn" style="background:var(--green-neon); color:#000; flex:2;" id="submit-reply-btn">إرسال الرد 🚀</button>
+                <button onclick="closeReplyModal()" class="btn btn-danger" style="flex:1;">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_MAP = {
+            "0zb8DE5GgeYobn0wMzaXiDAPbiO2": { name: "giza", label: "الجيزة (المالك)", role: "owner" },
+            "YFYNXb6sBEPkwfikuYBBVe6ggZN2": { name: "sara", label: "سارة (مشرفة)", role: "manager" },
+            "Zh16pJVYpwZet02RGbRPgdwFfoE2": { name: "mahmoud", label: "محمود (مشرف)", role: "staff" },
+            "5cY88LU42yfwjlOng4ik6aADm863": { name: "ahmed", label: "أحمد (مشرف)", role: "staff" }
+        };
+
+        const SERVER_URL = "https://admey.vercel.app/api/admin"; 
+        let currentUser = null;
+        let dbData = { codes: [], blocked_devices: {}, expenses: {} };
+        let currentView = 'active'; 
+        let currentScope = 'all';
+        let charts = {}; 
+        
+        let allTickets = [];
+        let currentTicketTab = 'pending';
+        let currentReplyTicketId = null;
+
+        // ================= FIREBASE DOUBLE CONNECTION (الربط المزدوج) =================
+        
+        // 1. قاعدة البيانات الرئيسية (Login & Dashboard)
+        const firebaseConfigMain = { 
+            apiKey: "AIzaSyD7PB4meIc-r2ijKzheD7P868CfKdsVej0", 
+            databaseURL: "https://full-mark1-default-rtdb.firebaseio.com" 
+        };
+        // Initialize Default App
+        const mainApp = firebase.initializeApp(firebaseConfigMain); 
+        const mainAuth = mainApp.auth(); // Auth من الأساسي
+
+        // 2. قاعدة بيانات الرسايل فقط (Tickets Only)
+        const firebaseConfigTickets = {
+            apiKey: "AIzaSyCm1yAULuM1D3ScjS9NUB2nCV_R-Y67QD4",
+            authDomain: "reply-full.firebaseapp.com",
+            databaseURL: "https://reply-full-default-rtdb.firebaseio.com",
+            projectId: "reply-full",
+            storageBucket: "reply-full.firebasestorage.app",
+            messagingSenderId: "67591498026",
+            appId: "1:67591498026:web:ebad8cfd2d79d3038cd653",
+            measurementId: "G-J0WRD5YP1E"
+        };
+        // Initialize Secondary App (سميناها ticketsApp عشان منلخبطش)
+        const ticketApp = firebase.initializeApp(firebaseConfigTickets, "ticketsApp");
+        const ticketDB = ticketApp.database(); // DB الرسايل
+
+        // ================= LOGIN (Uses Main Auth) =================
+        async function handleLogin() {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            try {
+                const res = await mainAuth.signInWithEmailAndPassword(email, pass);
+                if (!ADMIN_MAP[res.user.uid]) { alert("Unauthorized"); mainAuth.signOut(); }
+            } catch (e) { alert("بيانات الدخول غير صحيحة"); }
+        }
+
+        mainAuth.onAuthStateChanged(user => {
+            if (user && ADMIN_MAP[user.uid]) {
+                currentUser = { ...ADMIN_MAP[user.uid], uid: user.uid };
+                initDashboard();
+            } else {
+                document.getElementById('login-screen').style.display = 'flex';
+                document.getElementById('admin-panel').style.display = 'none';
+            }
+        });
+
+        function logout() { mainAuth.signOut(); }
+
+        function initDashboard() {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('admin-panel').style.display = 'block';
+            document.getElementById('welcome-msg').innerText = `WELCOME, ${currentUser.name.toUpperCase()}`;
+            document.getElementById('role-label').innerText = currentUser.label;
+
+            if (currentUser.role === 'owner') {
+                document.getElementById('stats-area').style.display = 'grid';
+                document.getElementById('charts-area').style.display = 'grid';
+            } else {
+                currentScope = currentUser.name;
+                document.getElementById('charts-area').style.display = 'none';
+            }
+            refreshData();
+            
+            // Start listening to tickets from the SECONDARY DB
+            if(currentUser.role === 'owner' || currentUser.role === 'manager') {
+                loadTicketsSystem();
+            }
+        }
+
+        async function refreshData() {
+            try {
+                const res = await fetch(`${SERVER_URL}/dashboard-data?admin_uuid=${currentUser.uid}&target_admin=${currentScope}`);
+                dbData = await res.json();
+                renderTable();
+                updateStats(); 
+                if (currentUser.role === 'owner') { initCharts(); }
+            } catch (e) { console.error(e); }
+        }
+
+        // ================= Charts Logic =================
+        function initCharts() {
+            const ctx1 = document.getElementById('usersChart').getContext('2d');
+            const ctx2 = document.getElementById('financeChart').getContext('2d');
+
+            const activeCount = dbData.codes.filter(c => c.state === 'active' && !c.isTrial).length;
+            const trialCount = dbData.codes.filter(c => c.isTrial).length;
+            const expiredCount = dbData.codes.filter(c => c.state === 'expired').length;
+            
+            const revenue = dbData.codes.reduce((a, c) => a + (parseFloat(c.pricePaid) || 0), 0);
+            const expenses = Object.values(dbData.expenses || {}).reduce((a, e) => a + (parseFloat(e.amount) || 0), 0);
+
+            if (charts.users) charts.users.destroy();
+            if (charts.finance) charts.finance.destroy();
+
+            charts.users = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['مشترك (نشط)', 'تجريبي (ساعة)', 'منتهي', 'محظور'],
+                    datasets: [{
+                        data: [activeCount, trialCount, expiredCount, Object.keys(dbData.blocked_devices || {}).length],
+                        backgroundColor: ['#00f2ff', '#ff9f43', '#5c7c8a', '#ff4757'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#fff' } }, title: { display: true, text: 'توزيع الطلاب', color: '#fff' } }
+                }
+            });
+
+            charts.finance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['الدخل الكلي', 'المصروفات', 'الصافي'],
+                    datasets: [{
+                        label: 'بالجنيه المصري',
+                        data: [revenue, expenses, revenue - expenses],
+                        backgroundColor: ['#2ed573', '#ff4757', '#ffa502'],
+                        barThickness: 40
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { ticks: { color: '#fff' }, grid: { color: '#333' } }, x: { ticks: { color: '#fff' } } },
+                    plugins: { legend: { display: false }, title: { display: true, text: 'الوضع المالي', color: '#fff' } }
+                }
+            });
+        }
+
+        // ================= Main Tab Logic =================
+        function switchMainTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('dashboard-view').style.display = 'none';
+            document.getElementById('tickets-view').style.display = 'none';
+            document.getElementById('team-view').style.display = 'none';
+
+            if(tabName === 'dashboard') document.getElementById('dashboard-view').style.display = 'block';
+            if(tabName === 'tickets') {
+                document.getElementById('tickets-view').style.display = 'block';
+                renderTicketsGrid();
+            }
+            if(tabName === 'team') {
+                document.getElementById('team-view').style.display = 'grid';
+                renderTeamView();
+            }
+        }
+
+        // ================= Ticket System Logic (Uses ticketDB) =================
+        function loadTicketsSystem() {
+            // Note: Using ticketDB here, NOT the default one
+            ticketDB.ref('support_tickets').on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) {
+                    allTickets = [];
+                } else {
+                    allTickets = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+                    allTickets.sort((a, b) => b.timestamp - a.timestamp);
+                }
+                updateTicketStats();
+                if(document.getElementById('tickets-view').style.display !== 'none') {
+                    renderTicketsGrid();
+                }
+            });
+        }
+
+        function updateTicketStats() {
+            const pending = allTickets.filter(t => !t.isReplied).length;
+            const replied = allTickets.filter(t => t.isReplied).length;
+            document.getElementById('count-pending').innerText = pending;
+            document.getElementById('count-replied').innerText = replied;
+        }
+
+        function switchTicketTab(tab, btn) {
+            currentTicketTab = tab;
+            document.querySelectorAll('.ticket-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderTicketsGrid();
+        }
+
+        function renderTicketsGrid() {
+            const container = document.getElementById('tickets-container');
+            container.innerHTML = '';
+            
+            const filtered = allTickets.filter(t => currentTicketTab === 'pending' ? !t.isReplied : t.isReplied);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div style="text-align:center; grid-column:1/-1; padding:50px; color:#555;">
+                    <i class="fas fa-check-circle fa-3x" style="margin-bottom:15px"></i>
+                    <p>مفيش رسايل هنا يا بطل!</p>
+                </div>`;
+                return;
+            }
+
+            filtered.forEach(ticket => {
+                const date = new Date(ticket.timestamp).toLocaleString('ar-EG');
+                
+                const card = document.createElement('div');
+                card.className = 'ticket-card';
+                card.innerHTML = `
+                    <div class="t-header">
+                        <span>#${ticket.id.substring(ticket.id.length - 6)}</span>
+                        <span>${date}</span>
+                    </div>
+                    <div class="t-subject">${ticket.subject}</div>
+                    <div class="t-msg">${ticket.message}</div>
+                    
+                    <div class="t-info">
+                        <span><i class="fas fa-user"></i> ${ticket.studentName || 'غير معروف'}</span>
+                        <span><i class="fas fa-id-card"></i> ${ticket.studentCode}</span>
+                        ${ticket.isReplied ? '<span class="badge-replied">تم الرد</span>' : '<span class="badge-pending">انتظار</span>'}
+                    </div>
+
+                    ${ticket.isReplied ? `<div class="admin-response"><b>ردك:</b> ${ticket.adminReply}</div>` : ''}
+
+                    <div class="admin-actions">
+                        <button onclick="deleteTicket('${ticket.id}')" class="btn-action btn-delete-all">
+                            <i class="fas fa-trash"></i> حذف الرسالة
+                        </button>
+                        
+                        ${ticket.isReplied ? 
+                            `<button onclick="deleteReplyOnly('${ticket.id}')" class="btn-action btn-delete-reply">
+                                <i class="fas fa-undo"></i> حذف الرد فقط
+                            </button>` : 
+                            `<button onclick="openReplyModal('${ticket.id}', '${ticket.studentName}', '${ticket.studentCode}')" class="btn-action btn-reply-main">
+                                رد على الطالب <i class="fas fa-reply"></i>
+                            </button>`
+                        }
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function openReplyModal(id, name, code) {
+            currentReplyTicketId = id;
+            document.getElementById('reply-text').value = '';
+            document.getElementById('reply-to-info').innerText = `جاري الرد على الطالب: ${name} (كود: ${code})`;
+            document.getElementById('reply-modal').style.display = 'flex';
+        }
+
+        function closeReplyModal() {
+            document.getElementById('reply-modal').style.display = 'none';
+            currentReplyTicketId = null;
+        }
+
+        function sendReplySubmit() {
+            const text = document.getElementById('reply-text').value;
+            if (!text || !currentReplyTicketId) return alert("اكتب رد الأول!");
+            
+            const btn = document.getElementById('submit-reply-btn');
+            btn.disabled = true;
+            btn.innerText = "جاري الحفظ...";
+
+            // Use ticketDB
+            ticketDB.ref('support_tickets/' + currentReplyTicketId).update({
+                isReplied: true,
+                adminReply: text,
+                replyDate: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                alert("تم إرسال الرد بنجاح!");
+                closeReplyModal();
+            }).catch((e) => {
+                alert("خطأ: " + e.message);
+            }).finally(() => {
+                btn.disabled = false;
+                btn.innerText = "إرسال الرد 🚀";
+            });
+        }
+
+        function deleteTicket(id) {
+            if(confirm("حذف الرسالة دي نهائي؟ 🗑️")) {
+                ticketDB.ref('support_tickets/' + id).remove();
+            }
+        }
+
+        function deleteReplyOnly(id) {
+            if(confirm("عايز تمسح ردك وترجع الرسالة للانتظار؟ 🤔")) {
+                ticketDB.ref('support_tickets/' + id).update({
+                    isReplied: false,
+                    adminReply: null,
+                    replyDate: null
+                }).then(() => alert("تم حذف الرد، الرسالة رجعت للانتظار"));
+            }
+        }
+
+        // ================= Team & Other Views =================
+        function renderTeamView() {
+            const container = document.getElementById('team-view');
+            container.innerHTML = '';
+            Object.values(ADMIN_MAP).forEach(admin => {
+                const adminCodes = dbData.codes.filter(c => c.addedByAdmin === admin.name);
+                const activeCodes = adminCodes.filter(c => c.state === 'active').length;
+                const totalRevenue = adminCodes.reduce((sum, c) => sum + (parseFloat(c.pricePaid) || 0), 0);
+
+                container.innerHTML += `
+                    <div class="admin-card">
+                        <i class="fas fa-user-shield fa-3x" style="color:var(--accent); margin-bottom:15px"></i>
+                        <h3>${admin.label}</h3>
+                        <div class="role" style="font-size:0.8rem; color:var(--accent); background:rgba(0,242,255,0.1); padding:2px 10px; border-radius:15px; display:inline-block; margin-bottom:20px">${admin.role}</div>
+                        <div class="admin-stat-row"><span style="color:#aaa">إجمالي الأكواد:</span><span style="font-weight:bold; color:#fff">${adminCodes.length}</span></div>
+                        <div class="admin-stat-row"><span style="color:#aaa">نشط حالياً:</span><span style="font-weight:bold; color:var(--accent)">${activeCodes}</span></div>
+                        <div style="margin-top:15px; background:rgba(46,213,115,0.1); color:var(--success); padding:10px; border-radius:8px; font-weight:bold; border:1px solid var(--success)">دخل المحفظة: ${totalRevenue} EGP</div>
+                    </div>
+                `;
+            });
+        }
+
+        // ================= Data Table & Actions (Standard) =================
+        function updateStats() {
+            const area = document.getElementById('stats-area');
+            if(currentUser.role !== 'owner') return;
+            const allCodesCount = dbData.codes.length;
+            const activeCodes = dbData.codes.filter(c => c.state === 'active');
+            area.innerHTML = `
+                <div class="stat-box"><div class="stat-num">${allCodesCount}</div><div class="stat-lbl">إجمالي الأكواد</div></div>
+                <div class="stat-box"><div class="stat-num">${activeCodes.length}</div><div class="stat-lbl">الطلاب النشطين</div></div>
+            `;
+        }
+
+        function renderTable() {
+            const head = document.getElementById('table-head');
+            const body = document.getElementById('table-body');
+            body.innerHTML = '';
+            if (currentView === 'banned') { renderBannedView(); return; }
+            head.innerHTML = `<tr><th>الكود</th><th>الطالب</th><th>بواسطة</th><th>المدة</th><th>السعر</th><th>الأدوات</th></tr>`;
+
+            let list = currentView === 'trial' ? dbData.codes.filter(c => c.isTrial) : dbData.codes.filter(c => c.state === currentView);
+            if (currentUser.role !== 'owner') list = list.filter(c => c.addedByAdmin === currentUser.name);
+
+            list.forEach(item => {
+                const badge = item.isTrial ? '<span style="color:var(--trial-color); border:1px solid var(--trial-color); padding:0 4px; border-radius:4px; font-size:0.6rem; margin-left:5px">TRIAL</span>' : '';
+                const row = `
+                    <tr>
+                        <td><span style="background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:4px; font-family:monospace; color:var(--accent)">${item.code}</span></td>
+                        <td>${item.name} ${badge} <div style="font-size:0.7rem; color:#777">${item.section}</div></td>
+                        <td>${item.addedByAdmin}</td>
+                        <td>${formatDuration(item)}</td>
+                        <td>${item.pricePaid}</td>
+                        <td style="display:flex;">
+                            <button class="act-btn btn-c-code" onclick="copyText('${item.code}')"><i class="fas fa-copy"></i></button>
+                            <button class="act-btn btn-c-dev" onclick="copyText('${item.deviceId}')"><i class="fas fa-fingerprint"></i></button>
+                            <button class="act-btn btn-eject" onclick="quickAction('${item.code}', 'eject_device')"><i class="fas fa-sign-out-alt"></i></button>
+                            <button class="act-btn btn-dis" onclick="quickAction('${item.code}', 'toggle_block')"><i class="fas fa-power-off"></i></button>
+                            <button class="act-btn btn-del" onclick="quickAction('${item.code}', 'delete')"><i class="fas fa-trash"></i></button>
+                            <button class="act-btn btn-edt" onclick="openEditModal('${item.code}')"><i class="fas fa-edit"></i></button>
+                        </td>
+                    </tr>`;
+                body.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        function renderBannedView() {
+            const body = document.getElementById('table-body');
+            document.getElementById('table-head').innerHTML = `<tr><th>الجهاز</th><th>بواسطة</th><th>السبب</th><th>فك الحظر</th></tr>`;
+            Object.values(dbData.blocked_devices || {}).forEach(d => {
+                body.innerHTML += `<tr>
+                    <td style="color:var(--danger); font-family:monospace">${d.deviceId}</td>
+                    <td>${d.blockedBy}</td>
+                    <td>${d.reason}</td>
+                    <td><button class="btn btn-primary" onclick="unbanDevice('${d.deviceId}')">Unban</button></td>
+                </tr>`;
+            });
+        }
+
+        // ================= Helpers & Modal Actions =================
+        function openCreateModal(mode) {
+            document.getElementById('modal-title').innerText = mode === 'trial' ? "GENERATE TRIAL" : "NEW CODE";
+            document.getElementById('edit-mode-id').value = "";
+            document.getElementById('duration-section').style.display = 'block';
+            document.getElementById('m-name').value = "";
+            document.getElementById('m-price').value = mode === 'trial' ? "0" : "0";
+            document.getElementById('m-duration').value = mode === 'trial' ? "trial" : "month";
+            toggleCustomDays(document.getElementById('m-duration').value);
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        function openEditModal(code) {
+            const item = dbData.codes.find(c => c.code === code);
+            if (!item) return;
+            document.getElementById('modal-title').innerText = "EDIT STUDENT";
+            document.getElementById('edit-mode-id').value = code;
+            document.getElementById('m-name').value = item.name;
+            // Ensure section is populated properly
+            document.getElementById('m-section').value = item.section;
+            document.getElementById('m-price').value = item.pricePaid;
+            document.getElementById('duration-section').style.display = 'none';
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        async function submitSave() {
+            const editId = document.getElementById('edit-mode-id').value;
+            const btn = document.querySelector('#actionModal .btn-success');
+            
+            const payload = {
+                name: document.getElementById('m-name').value, 
+                // !!! HERE: Explicitly getting the SECTION value (FIXED)
+                section: document.getElementById('m-section').value,
+                price: parseFloat(document.getElementById('m-price').value),
+                admin_uuid: currentUser.uid
+            };
+            payload.student_name = payload.name; // Duplicate key for API compatibility
+            
+            btn.disabled = true; btn.innerText = "...";
+
+            try {
+                if (editId) {
+                    // Update Mode
+                    payload.code = editId; 
+                    payload.action = 'update_student';
+                    
+                    const res = await fetch(`${SERVER_URL}/take-action`, { 
+                        method: 'POST', 
+                        headers: {'Content-Type': 'application/json'}, 
+                        body: JSON.stringify(payload) 
+                    });
+                    
+                    if (res.ok) { 
+                        closeModal(); 
+                        refreshData(); 
+                        alert("تم التعديل بنجاح"); 
+                    } else {
+                        alert("حدث خطأ في السيرفر");
+                    }
+                } else {
+                    // Create Mode
+                    payload.duration_type = document.getElementById('m-duration').value;
+                    payload.custom_days = parseInt(document.getElementById('m-days').value) || 0;
+                    
+                    const res = await fetch(`${SERVER_URL}/create-code`, { 
+                        method: 'POST', 
+                        headers: {'Content-Type': 'application/json'}, 
+                        body: JSON.stringify(payload) 
+                    });
+                    
+                    const data = await res.json();
+                    closeModal();
+                    document.getElementById('generated-code').innerText = data.code;
+                    document.getElementById('successModal').style.display = 'flex';
+                    refreshData();
+                }
+            } catch (e) { console.error(e); alert("خطأ في الاتصال"); }
+            finally { btn.disabled = false; btn.innerText = "حفظ"; }
+        }
+
+        async function quickAction(code, action) {
+            if (!confirm("تأكيد الإجراء؟")) return;
+            await fetch(`${SERVER_URL}/take-action`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code, action, admin_uuid: currentUser.uid }) });
+            refreshData();
+        }
+
+        async function unbanDevice(deviceId) {
+            await fetch(`${SERVER_URL}/take-action`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ code: deviceId, action: 'unban_device', admin_uuid: currentUser.uid }) });
+            refreshData();
+        }
+
+        function formatDuration(item) {
+            if (item.state !== 'active') return `<span style="color:var(--danger)">منتهي</span>`;
+            const rem = item.expiry - Date.now();
+            if (rem <= 0) return `<span style="color:var(--danger)">منتهي</span>`;
+            if (item.isTrial) {
+                const min = Math.floor(rem/60000);
+                return min < 60 ? `<span style="color:var(--trial-color)">${min} دقيقة</span>` : `<span style="color:var(--trial-color)">${Math.floor(min/60)} ساعة</span>`;
+            }
+            return `${Math.ceil(rem / 86400000)} يوم`;
+        }
+        function copyText(t) { if(t) navigator.clipboard.writeText(t); }
+        function closeModal() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+        function copyAndClose() { copyText(document.getElementById('generated-code').innerText); document.getElementById('successModal').style.display = 'none'; }
+        function toggleCustomDays(v) { document.getElementById('m-days').style.display = v === 'custom' ? 'block' : 'none'; }
+        function setView(v, b) { currentView = v; document.querySelectorAll('.sub-nav .nav-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); renderTable(); }
+        function filterTable() {
+            const val = document.getElementById("searchInput").value.toLowerCase();
+            document.querySelectorAll("#table-body tr").forEach(row => { row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none"; });
+        }
+    </script>
+</body>
+</html>

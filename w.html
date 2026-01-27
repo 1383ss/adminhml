@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIZA ELITE | Command Center - Reports</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #02080e;
+            --card-bg: rgba(13, 25, 39, 0.95);
+            --accent: #00f2ff;
+            --danger: #ff4757;
+            --success: #00f5c4;
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+            --border: rgba(0, 242, 255, 0.15);
+        }
+
+        * { box-sizing: border-box; font-family: 'Cairo', sans-serif; transition: 0.3s; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            background-image: radial-gradient(circle at 50% 50%, #0a1f35 0%, #02080e 100%);
+            min-height: 100vh;
+        }
+
+        /* Grid Effect */
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: -1; opacity: 0.1;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(to left, var(--accent), var(--success));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .counter-box {
+            background: var(--card-bg);
+            display: inline-block;
+            padding: 10px 40px;
+            border-radius: 50px;
+            border: 1px solid var(--accent);
+            margin-top: 20px;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
+        }
+
+        /* Reports Grid */
+        .reports-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 25px;
+        }
+
+        .report-card {
+            background: var(--card-bg);
+            border-radius: 25px;
+            border: 1px solid var(--border);
+            padding: 25px;
+            position: relative;
+            backdrop-filter: blur(10px);
+            border-top: 5px solid var(--danger);
+            animation: fadeIn 0.6s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .report-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .card-id {
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--accent);
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-family: monospace;
+        }
+
+        .data-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+        }
+
+        .data-item i { color: var(--accent); width: 20px; font-size: 1.1rem; }
+        .data-label { color: var(--text-dim); font-size: 0.75rem; display: block; }
+        .data-val { font-weight: 700; font-size: 1rem; }
+
+        .student-box {
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px dashed var(--accent);
+            padding: 15px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            border-radius: 15px;
+            border: none;
+            background: linear-gradient(45deg, var(--danger), #ff6b81);
+            color: white;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .action-btn:hover { filter: brightness(1.2); box-shadow: 0 0 20px rgba(255, 71, 87, 0.3); }
+
+        .no-reports {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 100px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>مركز البلاغات 🚨</h1>
+            <div class="counter-box">البلاغات المفتوحة: <span id="count" style="font-weight: 900; color: var(--accent);">0</span></div>
+        </div>
+
+        <div id="grid" class="reports-grid">
+            <div class="no-reports">
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <p>جاري فحص قاعدة البيانات...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // بيانات Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCm1yAULuM1D3ScjS9NUB2nCV_R-Y67QD4",
+            databaseURL: "https://reply-full-default-rtdb.firebaseio.com"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        function startRadar() {
+            const grid = document.getElementById('grid');
+            const counter = document.getElementById('count');
+
+            // الاستماع المباشر لقسم repo
+            db.ref('repo').on('value', (snapshot) => {
+                const data = snapshot.val();
+                grid.innerHTML = '';
+
+                if (!data) {
+                    grid.innerHTML = '<div class="no-reports"><h3>السيستم نظيف.. لا يوجد بلاغات حالياً ✅</h3></div>';
+                    counter.innerText = "0";
+                    return;
+                }
+
+                // تحويل لـ Array وترتيب الأحدث فوق
+                const reports = Object.keys(data).map(k => ({ fbId: k, ...data[k] })).reverse();
+                counter.innerText = reports.length;
+
+                reports.forEach(report => {
+                    const card = document.createElement('div');
+                    card.className = 'report-card';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                            <span class="card-id">${report.id || 'N/A'}</span>
+                            <i class="fas fa-radiation-alt" style="color:var(--danger)"></i>
+                        </div>
+
+                        <div class="data-item">
+                            <i class="fas fa-book"></i>
+                            <div><span class="data-label">المادة</span><span class="data-val">${report.subject_name || 'غير محدد'}</span></div>
+                        </div>
+
+                        <div class="data-item">
+                            <i class="fas fa-user-tie"></i>
+                            <div><span class="data-label">المدرس</span><span class="data-val">${report.teacher_name || 'غير محدد'}</span></div>
+                        </div>
+
+                        <div class="data-item">
+                            <i class="fas fa-folder-open"></i>
+                            <div><span class="data-label">الفصل</span><span class="data-val">${report.chapter_name || 'غير محدد'}</span></div>
+                        </div>
+
+                        <div class="data-item">
+                            <i class="fas fa-play-circle"></i>
+                            <div><span class="data-label">المحاضرة</span><span class="data-val">${report.lecture_name || 'غير محدد'}</span></div>
+                        </div>
+
+                        <div class="student-box">
+                            <div style="font-size:0.7rem; color:var(--accent); margin-bottom:5px;">بيانات الطالب المرسل:</div>
+                            <div style="font-weight:900;">${report.student_name || 'مجهول'}</div>
+                            <div style="font-family:monospace; font-size:0.8rem;">ID: ${report.student_code || '---'}</div>
+                        </div>
+
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-dim); margin-top:10px;">
+                            <span><i class="far fa-clock"></i> ${report.date}</span>
+                            <span><i class="far fa-eye"></i> ${report.views || 0}</span>
+                        </div>
+
+                        <button class="action-btn" onclick="resolved('${report.fbId}')">
+                            <i class="fas fa-check-double"></i> تم الرفع (حذف البلاغ)
+                        </button>
+                    `;
+                    grid.appendChild(card);
+                });
+            });
+        }
+
+        async function resolved(id) {
+            if (confirm("هل تم حل المشكلة فعلاً؟")) {
+                try {
+                    await db.ref('repo/' + id).remove();
+                } catch (e) {
+                    alert("خطأ في الحذف");
+                }
+            }
+        }
+
+        startRadar();
+    </script>
+</body>
+</html>
