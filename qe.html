@@ -15,13 +15,12 @@
     <style>
         :root {
             /* --- Engineer Theme Palette --- */
-            --bg: #0b0c10;          /* لون الفحم الداكن */
+            --bg: #0b0c10;          /* خلفية سوداء فحمية */
             --card-bg: #1f2833;     /* رمادي معدني */
-            --accent: #ff6b00;      /* برتقالي هندسي (Safety Orange) */
+            --accent: #ff6b00;      /* برتقالي السلامة (Safety Orange) */
             --accent-glow: rgba(255, 107, 0, 0.4);
-            --text: #c5c6c7;        /* فضي فاتح */
-            --text-highlight: #fff;
-            --border: #45a29e;      /* حدود بلون سيان غامق */
+            --text: #c5c6c7;        /* فضي */
+            --border: #45a29e;      /* حدود سيان غامق */
             
             --success: #2ecc71;
             --danger: #e74c3c;
@@ -35,7 +34,7 @@
             color: var(--text); 
             margin: 0; 
             min-height: 100vh;
-            /* خلفية هندسية (Blueprint) */
+            /* خلفية شبكة هندسية */
             background-image: 
                 linear-gradient(rgba(255, 107, 0, 0.05) 1px, transparent 1px), 
                 linear-gradient(90deg, rgba(255, 107, 0, 0.05) 1px, transparent 1px);
@@ -58,10 +57,6 @@
             text-align: center; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.5); 
             position: relative;
-        }
-        .login-box::before {
-            content: ''; position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.05); pointer-events: none;
         }
 
         input, select, textarea { 
@@ -166,12 +161,10 @@
             background: var(--bg); color: var(--accent); padding: 0 10px; font-size: 0.8rem;
         }
 
-        /* --- Tickets & Team --- */
+        /* --- Tickets --- */
         .ticket-card { background: rgba(255,255,255,0.02); border: 1px solid #333; border-radius: 5px; padding: 20px; transition: 0.3s; }
         .ticket-card:hover { border-color: var(--accent); transform: translateY(-3px); }
         .t-subject { color: var(--accent); font-weight: bold; font-size: 1.2rem; }
-        
-        .admin-card { background: var(--card-bg); border-top: 4px solid var(--accent); padding: 20px; text-align: center; }
     </style>
 </head>
 <body>
@@ -500,7 +493,6 @@
             const ctx1 = document.getElementById('usersChart').getContext('2d');
             const ctx2 = document.getElementById('financeChart').getContext('2d');
             
-            // Data Prep
             const active = dbData.codes.filter(c => c.state === 'active' && !c.isTrial).length;
             const trial = dbData.codes.filter(c => c.isTrial).length;
             const expired = dbData.codes.filter(c => c.state === 'expired').length;
@@ -541,7 +533,7 @@
             });
         }
 
-        // ================= TABLE RENDERER =================
+        // ================= TABLE RENDERER (UPDATED) =================
         function renderTable() {
             const head = document.getElementById('table-head');
             const body = document.getElementById('table-body');
@@ -549,8 +541,15 @@
 
             if (currentView === 'banned') { renderBannedView(); return; }
             
+            // --- UPDATED HEADERS: ADDED DEVICE ID ---
             head.innerHTML = `<tr>
-                <th>CODE</th><th>ENGINEER NAME</th><th>BY ADMIN</th><th>DURATION</th><th>PRICE</th><th>ACTIONS</th>
+                <th>CODE</th>
+                <th>ENGINEER NAME</th>
+                <th>DEVICE ID</th>
+                <th>BY ADMIN</th>
+                <th>DURATION</th>
+                <th>PRICE</th>
+                <th>ACTIONS</th>
             </tr>`;
 
             let list = currentView === 'trial' ? dbData.codes.filter(c => c.isTrial) : dbData.codes.filter(c => c.state === currentView);
@@ -558,16 +557,24 @@
 
             list.forEach(item => {
                 const badge = item.isTrial ? '<span style="color:#f1c40f; border:1px solid #f1c40f; padding:0 3px; font-size:10px; margin-right:5px">TRIAL</span>' : '';
+                
+                // --- LOGIC FOR DEVICE ID DISPLAY ---
+                const deviceDisplay = item.deviceId 
+                    ? `<span style="font-family:'Fira Code'; color:#45a29e; font-size:0.85rem; letter-spacing:1px;">${item.deviceId}</span>` 
+                    : `<span style="color:#555; font-size:0.8rem; font-style:italic;">-- PENDING --</span>`;
+
                 const row = `
                     <tr>
                         <td style="font-family:'Fira Code'; color:var(--accent); letter-spacing:1px;">${item.code}</td>
                         <td>${badge} <b>${item.name}</b> <br> <small style="color:#777">${item.section}</small></td>
+                        
+                        <td>${deviceDisplay}</td>
+
                         <td>${item.addedByAdmin}</td>
                         <td>${formatDuration(item)}</td>
                         <td style="color:#2ecc71; font-weight:bold">${item.pricePaid}</td>
                         <td style="display:flex;">
                             <button class="act-btn btn-c-code" title="Copy Code" onclick="copyText('${item.code}')"><i class="fas fa-copy"></i></button>
-                            <button class="act-btn btn-c-code" style="background:#8e44ad" title="Copy Device ID" onclick="copyText('${item.deviceId}')"><i class="fas fa-fingerprint"></i></button>
                             <button class="act-btn btn-eject" title="Log Out" onclick="quickAction('${item.code}', 'eject_device')"><i class="fas fa-sign-out-alt"></i></button>
                             <button class="act-btn btn-dis" title="Toggle Block" onclick="quickAction('${item.code}', 'toggle_block')"><i class="fas fa-power-off"></i></button>
                             <button class="act-btn btn-del" title="Delete" onclick="quickAction('${item.code}', 'delete')"><i class="fas fa-trash"></i></button>
