@@ -3,11 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIZA PLATFORM | لوحة التحكم</title>
+    <title>GIZA PLATFORM | Admin Console</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <script>
         tailwind.config = {
@@ -26,13 +30,15 @@
     <style>
         body { background-color: #0f172a; color: #e2e8f0; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .action-menu { display: none; position: absolute; left: 30px; z-index: 50; background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); min-width: 160px; }
+        .action-menu { display: none; position: absolute; left: 30px; z-index: 50; background: #1e293b; border: 1px solid #334155; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); min-width: 170px; }
         .action-menu.show { display: block; }
-        /* Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Loading Spinner */
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="font-sans antialiased overflow-hidden h-screen flex">
@@ -44,115 +50,105 @@
             </div>
             <div>
                 <h1 class="text-xl font-bold text-white tracking-wide">GIZA EDU</h1>
-                <p class="text-xs text-slate-400">Admin Console v2.0</p>
+                <p class="text-xs text-slate-400">Connected <span class="text-green-500">●</span></p>
             </div>
         </div>
 
         <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <a href="#" onclick="switchTab('dashboard')" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-600 text-white shadow-lg shadow-blue-900/20 transition-all">
+            <button onclick="switchTab('dashboard', this)" class="nav-item active w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-600 text-white shadow-lg shadow-blue-900/20 transition-all">
                 <i class="fas fa-chart-pie w-5"></i> <span>الرئيسية</span>
-            </a>
-            <a href="#" onclick="switchTab('codes')" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-dark-700 hover:text-white transition-all">
-                <i class="fas fa-users w-5"></i> <span>إدارة الطلاب</span>
-            </a>
-            <a href="#" onclick="switchTab('team')" class="nav-item flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-dark-700 hover:text-white transition-all">
-                <i class="fas fa-user-shield w-5"></i> <span>فريق العمل</span>
-            </a>
-            <a href="#" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-dark-700 hover:text-white transition-all">
-                <i class="fas fa-cog w-5"></i> <span>الإعدادات</span>
-            </a>
-        </nav>
-
-        <div class="p-4 border-t border-dark-700">
-            <button class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all">
-                <i class="fas fa-sign-out-alt"></i> تسجيل خروج
             </button>
-        </div>
+            <button onclick="switchTab('tickets', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-dark-700 hover:text-white transition-all">
+                <i class="fas fa-headset w-5"></i> <span>الدعم الفني</span>
+                <span id="badge-tickets" class="hidden bg-red-500 text-white text-xs px-2 py-0.5 rounded-full mr-auto">0</span>
+            </button>
+            <button onclick="switchTab('team', this)" class="nav-item w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:bg-dark-700 hover:text-white transition-all">
+                <i class="fas fa-users w-5"></i> <span>فريق العمل</span>
+            </button>
+        </nav>
     </aside>
 
     <main class="flex-1 flex flex-col h-screen overflow-hidden relative">
-        
         <header class="h-20 bg-dark-900/90 backdrop-blur border-b border-dark-700 flex items-center justify-between px-8 z-10">
-            <h2 class="text-2xl font-bold text-white" id="page-title">لوحة التحكم</h2>
+            <h2 class="text-2xl font-bold text-white" id="page-title">الرئيسية</h2>
             <div class="flex items-center gap-4">
-                <div class="bg-dark-800 px-4 py-2 rounded-full border border-dark-700 flex items-center gap-2 text-sm text-slate-300">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span>النظام يعمل بكفاءة</span>
+                <div id="loading-indicator" class="hidden bg-brand-900/50 px-3 py-1 rounded-full text-brand-400 text-xs border border-brand-500/20">
+                    <div class="loader mr-2 align-middle"></div> جاري المزامنة...
                 </div>
-                <button class="w-10 h-10 rounded-full bg-dark-800 border border-dark-700 flex items-center justify-center text-slate-300 hover:text-white hover:border-brand-500 transition-all">
-                    <i class="fas fa-bell"></i>
-                </button>
-                <div class="flex items-center gap-3 pl-2 border-r border-dark-700 mr-2">
+                <div class="flex items-center gap-3 pl-2 mr-2">
                     <div class="text-left hidden md:block">
-                        <p class="text-sm font-bold text-white">Eng. Giza</p>
-                        <p class="text-xs text-brand-500">Super Admin</p>
+                        <p class="text-sm font-bold text-white">Admin Giza</p>
+                        <p class="text-xs text-brand-500">System Owner</p>
                     </div>
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-500 to-purple-600 flex items-center justify-center text-white font-bold border-2 border-dark-900">
-                        G
-                    </div>
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-500 to-purple-600 flex items-center justify-center text-white font-bold border-2 border-dark-900">G</div>
                 </div>
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-8" id="main-view">
+        <div class="flex-1 overflow-y-auto p-8 relative">
             
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-brand-500/10 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-brand-500/20"></div>
-                    <div class="relative z-10">
+            <div id="view-dashboard" class="space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
                         <p class="text-slate-400 text-sm font-medium mb-1">إجمالي الطلاب</p>
-                        <h3 class="text-3xl font-bold text-white">1,245</h3>
-                        <p class="text-green-400 text-xs mt-2 flex items-center gap-1"><i class="fas fa-arrow-up"></i> +12% هذا الشهر</p>
+                        <h3 class="text-3xl font-bold text-white" id="stat-total">0</h3>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
+                        <p class="text-slate-400 text-sm font-medium mb-1">النشطين (Active)</p>
+                        <h3 class="text-3xl font-bold text-green-400" id="stat-active">0</h3>
+                    </div>
+                    <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
+                        <p class="text-slate-400 text-sm font-medium mb-1">الدخل المقدر</p>
+                        <h3 class="text-3xl font-bold text-white" id="stat-money">0 <span class="text-sm text-slate-500">EGP</span></h3>
+                    </div>
+                     <div class="glass-panel p-6 rounded-2xl relative overflow-hidden">
+                        <p class="text-slate-400 text-sm font-medium mb-1">منتهي الصلاحية</p>
+                        <h3 class="text-3xl font-bold text-red-400" id="stat-expired">0</h3>
                     </div>
                 </div>
-                <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-green-500/10 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-green-500/20"></div>
-                    <div class="relative z-10">
-                        <p class="text-slate-400 text-sm font-medium mb-1">إجمالي الدخل</p>
-                        <h3 class="text-3xl font-bold text-white">45,200 <span class="text-sm text-slate-500">EGP</span></h3>
-                        <p class="text-slate-500 text-xs mt-2">صافي الربح بعد المصروفات</p>
+
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="relative w-full md:w-96">
+                        <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
+                        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="بحث (الاسم، الكود، المحافظة)..." class="w-full bg-dark-800 border border-dark-700 rounded-xl py-3 pr-12 pl-4 text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500">
                     </div>
+                    <button onclick="openModal()" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-brand-600/30 flex items-center gap-2">
+                        <i class="fas fa-plus"></i> كود جديد
+                    </button>
                 </div>
-                 <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-bl-full -mr-4 -mt-4 transition-all group-hover:bg-orange-500/20"></div>
-                    <div class="relative z-10">
-                        <p class="text-slate-400 text-sm font-medium mb-1">أكواد تجريبية (ساعة)</p>
-                        <h3 class="text-3xl font-bold text-white">85</h3>
-                        <p class="text-orange-400 text-xs mt-2">نشطة حالياً</p>
-                    </div>
+
+                <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl min-h-[300px]">
+                    <table class="w-full text-right">
+                        <thead class="bg-dark-800 text-slate-400 text-sm border-b border-dark-700">
+                            <tr>
+                                <th class="px-6 py-4 font-medium">الطالب</th>
+                                <th class="px-6 py-4 font-medium">الكود</th>
+                                <th class="px-6 py-4 font-medium">المدة / الصلاحية</th>
+                                <th class="px-6 py-4 font-medium">بواسطة</th>
+                                <th class="px-6 py-4 font-medium">الحالة</th>
+                                <th class="px-6 py-4 font-medium">تحكم</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-dark-700 text-sm" id="table-body">
+                           </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                <div class="relative w-full md:w-96">
-                    <i class="fas fa-search absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"></i>
-                    <input type="text" placeholder="بحث باسم الطالب، الكود، أو الجهاز..." class="w-full bg-dark-800 border border-dark-700 rounded-xl py-3 pr-12 pl-4 text-slate-200 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all">
+            <div id="view-tickets" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                     <h3 class="text-xl font-bold text-white">رسائل الطلاب (الدعم الفني)</h3>
+                     <div class="flex gap-2">
+                         <button onclick="ticketFilter='pending'; renderTickets()" class="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500 hover:text-white transition">جديد</button>
+                         <button onclick="ticketFilter='replied'; renderTickets()" class="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500 hover:text-white transition">تم الرد</button>
+                     </div>
                 </div>
-                <button onclick="openModal()" class="bg-brand-600 hover:bg-brand-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-brand-600/30 flex items-center gap-2 transition-transform transform hover:-translate-y-1">
-                    <i class="fas fa-plus"></i> إنشاء كود جديد
-                </button>
+                <div id="tickets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    </div>
             </div>
 
-            <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl">
-                <table class="w-full text-right">
-                    <thead class="bg-dark-800 text-slate-400 text-sm border-b border-dark-700">
-                        <tr>
-                            <th class="px-6 py-4 font-medium">الطالب</th>
-                            <th class="px-6 py-4 font-medium">الكود</th>
-                            <th class="px-6 py-4 font-medium">المدة</th>
-                            <th class="px-6 py-4 font-medium">بواسطة</th>
-                            <th class="px-6 py-4 font-medium">الحالة</th>
-                            <th class="px-6 py-4 font-medium">تحكم</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-dark-700 text-sm" id="table-body">
-                        </tbody>
-                </table>
-            </div>
-            
-            <div id="team-section" class="hidden mt-8">
-                <h3 class="text-xl font-bold text-white mb-4">أداء فريق العمل</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="team-grid">
+            <div id="view-team" class="hidden">
+                 <div id="team-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     </div>
             </div>
 
@@ -160,96 +156,161 @@
     </main>
 
     <div id="createModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-dark-800 w-full max-w-md rounded-2xl border border-dark-700 shadow-2xl transform transition-all scale-100 p-6">
+        <div class="bg-dark-800 w-full max-w-md rounded-2xl border border-dark-700 shadow-2xl p-6">
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-bold text-white">إصدار كود جديد</h3>
                 <button onclick="closeModal()" class="text-slate-400 hover:text-white"><i class="fas fa-times fa-lg"></i></button>
             </div>
-            
             <div class="space-y-4">
                 <div>
                     <label class="block text-slate-400 text-sm mb-2">اسم الطالب</label>
                     <input type="text" id="m-name" class="w-full bg-dark-900 border border-dark-700 rounded-lg p-3 text-white focus:border-brand-500 focus:outline-none">
                 </div>
-                
                 <div>
-                    <label class="block text-slate-400 text-sm mb-2">نوع الكود</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <label class="cursor-pointer">
-                            <input type="radio" name="duration" value="month" class="peer sr-only" checked>
-                            <div class="p-3 rounded-lg border border-dark-700 bg-dark-900 text-center text-slate-400 peer-checked:border-brand-500 peer-checked:bg-brand-500/10 peer-checked:text-brand-500 transition-all">
-                                <i class="fas fa-calendar-alt mb-1 block"></i> شهر كامل
-                            </div>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="duration" value="trial" class="peer sr-only">
-                            <div class="p-3 rounded-lg border border-dark-700 bg-dark-900 text-center text-slate-400 peer-checked:border-orange-500 peer-checked:bg-orange-500/10 peer-checked:text-orange-500 transition-all">
-                                <i class="fas fa-clock mb-1 block"></i> تجريبي (ساعة)
-                            </div>
-                        </label>
-                    </div>
+                    <label class="block text-slate-400 text-sm mb-2">السعر</label>
+                    <input type="number" id="m-price" value="150" class="w-full bg-dark-900 border border-dark-700 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none">
                 </div>
-
                 <div>
-                    <label class="block text-slate-400 text-sm mb-2">السعر (EGP)</label>
-                    <input type="number" id="m-price" value="150" class="w-full bg-dark-900 border border-dark-700 rounded-lg p-3 text-white focus:border-green-500 focus:outline-none font-mono">
+                    <label class="block text-slate-400 text-sm mb-2">المدة</label>
+                    <select id="m-duration" class="w-full bg-dark-900 border border-dark-700 rounded-lg p-3 text-white">
+                        <option value="month">شهر كامل</option>
+                        <option value="trial">تجربة (ساعة)</option>
+                    </select>
                 </div>
-
-                <button onclick="generateCode()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-lg mt-4 shadow-lg shadow-brand-600/30 transition-all">
-                    تأكيد وإنشاء
-                </button>
+                <button onclick="submitNewCode()" class="w-full bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-lg mt-4 shadow-lg shadow-brand-600/30 transition-all">إنشاء وحفظ</button>
             </div>
         </div>
     </div>
 
+    <div id="replyModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 w-full max-w-lg rounded-2xl border border-brand-500 shadow-2xl p-6">
+             <h3 class="text-lg font-bold text-brand-400 mb-2">الرد على الطالب</h3>
+             <p id="reply-student-info" class="text-slate-400 text-sm mb-4"></p>
+             <textarea id="reply-text" rows="4" class="w-full bg-dark-900 border border-dark-700 rounded-lg p-3 text-white mb-4" placeholder="اكتب ردك هنا..."></textarea>
+             <div class="flex gap-3">
+                 <button onclick="sendReply()" class="flex-1 bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 rounded-lg">إرسال الرد</button>
+                 <button onclick="document.getElementById('replyModal').classList.add('hidden')" class="px-4 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10">إلغاء</button>
+             </div>
+        </div>
+    </div>
+
     <script>
-        // --- Mock Data (بيانات وهمية للتجربة) ---
-        const admins = [
-            { name: "Giza", role: "Owner", codes: 120, revenue: 15000, img: "G" },
-            { name: "Sara", role: "Manager", codes: 45, revenue: 6750, img: "S" },
-            { name: "Ahmed", role: "Staff", codes: 30, revenue: 4500, img: "A" }
-        ];
+        // 1. MAIN APP CONFIG (Codes, Users)
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7PB4meIc-r2ijKzheD7P868CfKdsVej0",
+            authDomain: "full-mark1.firebaseapp.com",
+            databaseURL: "https://full-mark1-default-rtdb.firebaseio.com",
+            projectId: "full-mark1",
+            storageBucket: "full-mark1.firebasestorage.app",
+            messagingSenderId: "749096159784",
+            appId: "1:749096159784:web:117d2a6e658b8ec95f431d",
+            measurementId: "G-SQY9T9ML78"
+        };
+        const mainApp = firebase.initializeApp(firebaseConfig);
+        const db = mainApp.database();
+        const auth = mainApp.auth();
 
-        let students = [
-            { id: 1, name: "محمد علي", code: "GZ-9821", duration: "شهر", admin: "Giza", status: "active", price: 150 },
-            { id: 2, name: "يوسف أحمد", code: "GZ-5512", duration: "ساعة (تجريبي)", admin: "Sara", status: "trial", price: 0 },
-            { id: 3, name: "خالد سعيد", code: "GZ-1100", duration: "شهر", admin: "Giza", status: "banned", price: 150 },
-            { id: 4, name: "منى زكي", code: "GZ-3344", duration: "شهر", admin: "Ahmed", status: "expired", price: 150 },
-        ];
+        // 2. TICKET APP CONFIG (Support System)
+        const ticketConfig = {
+            apiKey: "AIzaSyCm1yAULuM1D3ScjS9NUB2nCV_R-Y67QD4",
+            databaseURL: "https://reply-full-default-rtdb.firebaseio.com"
+        };
+        const ticketApp = firebase.initializeApp(ticketConfig, "ticketApp");
+        const ticketDB = ticketApp.database();
 
-        // --- Render Functions ---
-        
+        // STATE
+        let codesData = [];
+        let ticketsData = [];
+        let ticketFilter = 'pending';
+        let currentReplyId = null;
+
+        // --- INIT & LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            showLoading(true);
+
+            // Fetch Codes
+            db.ref('codes').on('value', (snapshot) => {
+                const data = snapshot.val();
+                codesData = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+                // Sort by date desc
+                codesData.sort((a,b) => b.createdAt - a.createdAt);
+                
+                updateDashboardStats();
+                renderTable();
+                renderTeamStats();
+                showLoading(false);
+            });
+
+            // Fetch Tickets
+            ticketDB.ref('support_tickets').on('value', (snapshot) => {
+                const data = snapshot.val();
+                ticketsData = data ? Object.keys(data).map(key => ({ id: key, ...data[key] })) : [];
+                ticketsData.sort((a,b) => b.timestamp - a.timestamp);
+                
+                const pendingCount = ticketsData.filter(t => !t.isReplied).length;
+                const badge = document.getElementById('badge-tickets');
+                if(pendingCount > 0) { badge.innerText = pendingCount; badge.classList.remove('hidden'); }
+                else { badge.classList.add('hidden'); }
+                
+                if(document.getElementById('view-tickets').classList.contains('hidden') === false) {
+                    renderTickets();
+                }
+            });
+        });
+
+        // --- DASHBOARD FUNCTIONS ---
+        function updateDashboardStats() {
+            const total = codesData.length;
+            const active = codesData.filter(c => c.state === 'active').length;
+            const expired = codesData.filter(c => c.state === 'expired').length;
+            const money = codesData.reduce((sum, c) => sum + (Number(c.pricePaid) || 0), 0);
+
+            animateValue("stat-total", total);
+            animateValue("stat-active", active);
+            animateValue("stat-expired", expired);
+            animateValue("stat-money", money);
+        }
+
         function renderTable() {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
             
-            students.forEach(student => {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = codesData.filter(c => 
+                (c.name && c.name.toLowerCase().includes(searchTerm)) || 
+                (c.code && c.code.toLowerCase().includes(searchTerm))
+            );
+
+            filtered.slice(0, 50).forEach(student => { // Limit to 50 for performance
                 let statusBadge = '';
-                if(student.status === 'active') statusBadge = '<span class="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-xs font-bold border border-green-500/20">نشط</span>';
-                else if(student.status === 'trial') statusBadge = '<span class="bg-orange-500/10 text-orange-500 px-3 py-1 rounded-full text-xs font-bold border border-orange-500/20">تجريبي</span>';
-                else if(student.status === 'banned') statusBadge = '<span class="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20">محظور</span>';
+                if(student.state === 'active') statusBadge = '<span class="bg-green-500/10 text-green-500 px-3 py-1 rounded-full text-xs font-bold border border-green-500/20">نشط</span>';
+                else if(student.state === 'banned') statusBadge = '<span class="bg-red-500/10 text-red-500 px-3 py-1 rounded-full text-xs font-bold border border-red-500/20">محظور</span>';
                 else statusBadge = '<span class="bg-slate-500/10 text-slate-500 px-3 py-1 rounded-full text-xs font-bold border border-slate-500/20">منتهي</span>';
+
+                if(student.isTrial) statusBadge += ' <span class="text-orange-400 text-xs ml-1">(تجريبي)</span>';
+
+                const durationDisplay = student.isTrial ? 'ساعة تجريبية' : 'شهر كامل';
 
                 const row = `
                     <tr class="hover:bg-dark-800/50 transition-colors group">
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 rounded-full bg-dark-700 flex items-center justify-center text-xs font-bold text-slate-300">${student.name.charAt(0)}</div>
-                                <span class="text-white font-medium">${student.name}</span>
+                                <div class="w-8 h-8 rounded-full bg-dark-700 flex items-center justify-center text-xs font-bold text-slate-300">${student.name ? student.name.charAt(0) : '?'}</div>
+                                <span class="text-white font-medium">${student.name || 'غير معروف'}</span>
                             </div>
                         </td>
-                        <td class="px-6 py-4 font-mono text-brand-400">${student.code}</td>
-                        <td class="px-6 py-4 text-slate-300">${student.duration}</td>
-                        <td class="px-6 py-4 text-slate-400 text-xs">${student.admin}</td>
+                        <td class="px-6 py-4 font-mono text-brand-400 select-all">${student.code}</td>
+                        <td class="px-6 py-4 text-slate-300 text-xs">${durationDisplay}</td>
+                        <td class="px-6 py-4 text-slate-400 text-xs">${student.addedByAdmin || 'System'}</td>
                         <td class="px-6 py-4">${statusBadge}</td>
                         <td class="px-6 py-4 relative">
                             <button onclick="toggleMenu('menu-${student.id}')" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-dark-700 transition-all"><i class="fas fa-ellipsis-v"></i></button>
                             <div id="menu-${student.id}" class="action-menu">
-                                <button onclick="action('${student.code}', 'logout')" class="w-full text-right px-4 py-2 text-sm text-yellow-400 hover:bg-dark-700 flex items-center gap-2"><i class="fas fa-sign-out-alt w-4"></i> طرد (Log out)</button>
-                                <button onclick="action('${student.code}', 'ban')" class="w-full text-right px-4 py-2 text-sm text-red-400 hover:bg-dark-700 flex items-center gap-2"><i class="fas fa-ban w-4"></i> حظر الجهاز</button>
-                                <button onclick="action('${student.code}', 'pause')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-dark-700 flex items-center gap-2"><i class="fas fa-pause w-4"></i> إيقاف مؤقت</button>
+                                <button onclick="quickAction('${student.id}', 'logout')" class="w-full text-right px-4 py-2 text-sm text-yellow-400 hover:bg-dark-700 flex items-center gap-2"><i class="fas fa-sign-out-alt w-4"></i> طرد (Log out)</button>
+                                <button onclick="quickAction('${student.id}', 'ban')" class="w-full text-right px-4 py-2 text-sm text-red-400 hover:bg-dark-700 flex items-center gap-2"><i class="fas fa-ban w-4"></i> حظر الحساب</button>
+                                <button onclick="quickAction('${student.id}', 'delete')" class="w-full text-right px-4 py-2 text-sm text-slate-400 hover:bg-dark-700 flex items-center gap-2"><i class="fas fa-trash w-4"></i> حذف</button>
                                 <div class="h-px bg-dark-700 my-1"></div>
-                                <button onclick="copyCode('${student.code}')" class="w-full text-right px-4 py-2 text-sm text-brand-400 hover:bg-dark-700 flex items-center gap-2"><i class="fas fa-copy w-4"></i> نسخ الكود</button>
+                                <button onclick="copyToClip('${student.code}')" class="w-full text-right px-4 py-2 text-sm text-brand-400 hover:bg-dark-700 flex items-center gap-2"><i class="fas fa-copy w-4"></i> نسخ الكود</button>
                             </div>
                         </td>
                     </tr>
@@ -258,133 +319,171 @@
             });
         }
 
-        function renderTeam() {
+        // --- TEAM LOGIC ---
+        function renderTeamStats() {
+            const teamMap = {};
+            codesData.forEach(c => {
+                const admin = c.addedByAdmin || 'Unknown';
+                if(!teamMap[admin]) teamMap[admin] = { name: admin, count: 0, money: 0 };
+                teamMap[admin].count++;
+                teamMap[admin].money += (Number(c.pricePaid) || 0);
+            });
+
             const container = document.getElementById('team-grid');
             container.innerHTML = '';
-            admins.forEach(admin => {
-                const card = `
-                    <div class="bg-dark-800 border border-dark-700 rounded-2xl p-6 flex flex-col items-center text-center hover:border-brand-500/50 transition-all">
-                        <div class="w-16 h-16 rounded-full bg-dark-900 border-2 border-brand-500 flex items-center justify-center text-2xl font-bold text-white mb-3 shadow-lg shadow-brand-500/20">
-                            ${admin.img}
+            Object.values(teamMap).forEach(m => {
+                container.innerHTML += `
+                    <div class="bg-dark-800 border border-dark-700 rounded-2xl p-6 flex flex-col items-center text-center">
+                        <div class="w-16 h-16 rounded-full bg-dark-900 border-2 border-brand-500 flex items-center justify-center text-2xl font-bold text-white mb-3">
+                            ${m.name.charAt(0).toUpperCase()}
                         </div>
-                        <h4 class="text-lg font-bold text-white">${admin.name}</h4>
-                        <span class="bg-brand-500/10 text-brand-400 px-3 py-0.5 rounded-full text-xs mb-4 border border-brand-500/20">${admin.role}</span>
+                        <h4 class="text-lg font-bold text-white">${m.name}</h4>
+                        <div class="w-full grid grid-cols-2 gap-4 mt-4">
+                            <div class="bg-dark-900 p-3 rounded-xl border border-dark-700">
+                                <div class="text-xs text-slate-500">أكواد</div>
+                                <div class="text-xl font-bold text-white">${m.count}</div>
+                            </div>
+                            <div class="bg-dark-900 p-3 rounded-xl border border-dark-700">
+                                <div class="text-xs text-slate-500">مبيعات</div>
+                                <div class="text-xl font-bold text-green-400">${m.money}</div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        // --- TICKET LOGIC ---
+        function renderTickets() {
+            const grid = document.getElementById('tickets-grid');
+            grid.innerHTML = '';
+            const filtered = ticketsData.filter(t => ticketFilter === 'pending' ? !t.isReplied : t.isReplied);
+            
+            if(filtered.length === 0) {
+                grid.innerHTML = `<p class="text-slate-500 col-span-full text-center py-10">مفيش رسايل هنا يا هندسة 😎</p>`;
+                return;
+            }
+
+            filtered.forEach(t => {
+                const date = new Date(t.timestamp).toLocaleDateString('ar-EG');
+                const card = `
+                    <div class="glass-panel p-5 rounded-xl border ${t.isReplied ? 'border-green-500/20' : 'border-red-500/20'} relative group hover:-translate-y-1 transition-transform">
+                        <div class="flex justify-between text-xs text-slate-500 mb-2">
+                            <span><i class="fas fa-user"></i> ${t.studentName || 'طالب'}</span>
+                            <span>${date}</span>
+                        </div>
+                        <h4 class="text-brand-400 font-bold mb-2">${t.subject}</h4>
+                        <p class="text-slate-300 text-sm bg-dark-900/50 p-3 rounded-lg border border-dark-700">${t.message}</p>
+                        ${t.isReplied ? `<div class="mt-3 p-2 bg-green-500/10 border border-green-500/20 rounded text-xs text-green-300"><b>ردك:</b> ${t.adminReply}</div>` : ''}
                         
-                        <div class="w-full grid grid-cols-2 gap-4 mt-2">
-                            <div class="bg-dark-900 p-3 rounded-xl border border-dark-700">
-                                <div class="text-xs text-slate-500">أكواد مباعة</div>
-                                <div class="text-xl font-bold text-white">${admin.codes}</div>
-                            </div>
-                            <div class="bg-dark-900 p-3 rounded-xl border border-dark-700">
-                                <div class="text-xs text-slate-500">رصيد</div>
-                                <div class="text-xl font-bold text-green-400">${admin.revenue}</div>
-                            </div>
+                        <div class="mt-4 flex gap-2">
+                            ${!t.isReplied ? `<button onclick="openReplyModal('${t.id}', '${t.studentName}')" class="flex-1 bg-brand-600 hover:bg-brand-500 text-white text-sm py-2 rounded-lg">رد الآن</button>` : ''}
+                            <button onclick="deleteTicket('${t.id}')" class="px-3 py-2 bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                 `;
-                container.insertAdjacentHTML('beforeend', card);
+                grid.innerHTML += card;
             });
         }
 
-        // --- Interactive Functions ---
-
-        function openModal() {
-            document.getElementById('createModal').classList.remove('hidden');
+        function openReplyModal(id, name) {
+            currentReplyId = id;
+            document.getElementById('reply-student-info').innerText = `يتم الرد على: ${name}`;
+            document.getElementById('replyModal').classList.remove('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('createModal').classList.add('hidden');
+        function sendReply() {
+            const text = document.getElementById('reply-text').value;
+            if(!text) return Swal.fire({icon:'warning', title:'اكتب رد الأول!', background: '#1e293b', color: '#fff'});
+            
+            ticketDB.ref('support_tickets/' + currentReplyId).update({
+                isReplied: true,
+                adminReply: text,
+                replyDate: firebase.database.ServerValue.TIMESTAMP
+            });
+            document.getElementById('replyModal').classList.add('hidden');
+            document.getElementById('reply-text').value = '';
+            Swal.fire({icon:'success', title:'تم الرد بنجاح 🚀', background: '#1e293b', color: '#fff', timer: 1500, showConfirmButton:false});
         }
 
-        function generateCode() {
-            // هنا تحط كود الربط بالسيرفر
+        function deleteTicket(id) {
+            if(confirm("مسح نهائي؟")) ticketDB.ref('support_tickets/' + id).remove();
+        }
+
+        // --- ACTIONS ---
+        function submitNewCode() {
             const name = document.getElementById('m-name').value;
-            const newCode = "GZ-" + Math.floor(1000 + Math.random() * 9000);
-            
-            closeModal();
-            
-            Swal.fire({
-                title: 'تم إنشاء الكود!',
-                html: `<div class="bg-dark-900 p-4 rounded-xl border border-brand-500 text-2xl font-mono text-brand-500 mt-2">${newCode}</div>`,
-                icon: 'success',
-                confirmButtonText: 'نسخ وإغلاق',
-                confirmButtonColor: '#2563eb',
-                background: '#1e293b',
-                color: '#fff'
-            }).then(() => {
-                // Add to list visually (Simulation)
-                students.unshift({ 
-                    id: Date.now(), name: name || "طالب جديد", code: newCode, 
-                    duration: "شهر", admin: "Giza", status: "active", price: 150 
+            const price = document.getElementById('m-price').value;
+            const duration = document.getElementById('m-duration').value;
+            const newCode = "GZ-" + Math.floor(100000 + Math.random() * 900000); // Generate simple code
+
+            const newEntry = {
+                code: newCode,
+                name: name,
+                pricePaid: price,
+                isTrial: duration === 'trial',
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                state: 'active',
+                addedByAdmin: 'Giza', // You can make this dynamic if needed
+                expiry: Date.now() + (duration === 'trial' ? 3600000 : 2592000000) // 1 Hour or 30 Days
+            };
+
+            db.ref('codes').push(newEntry).then(() => {
+                closeModal();
+                Swal.fire({
+                    title: 'تم إنشاء الكود!',
+                    html: `<div class="bg-dark-900 p-4 rounded-xl border border-brand-500 text-3xl font-mono text-brand-500 mt-2">${newCode}</div>`,
+                    icon: 'success',
+                    background: '#1e293b',
+                    color: '#fff'
                 });
-                renderTable();
             });
         }
 
-        function toggleMenu(id) {
-            // Close all others
-            document.querySelectorAll('.action-menu').forEach(m => {
-                if(m.id !== id) m.classList.remove('show');
+        function quickAction(id, type) {
+            if(type === 'delete') {
+                if(confirm("حذف الطالب نهائياً؟")) db.ref('codes/' + id).remove();
+            } else if (type === 'ban') {
+                db.ref('codes/' + id).update({ state: 'banned', deviceId: null }); // Clear device ID to force logout effectively + ban state
+                Swal.fire({icon:'error', title:'تم حظر الطالب', background: '#1e293b', color: '#fff', timer: 1500, showConfirmButton:false});
+            } else if (type === 'logout') {
+                db.ref('codes/' + id).update({ deviceId: null }); // Clearing Device ID usually logs them out in these systems
+                Swal.fire({icon:'info', title:'تم تسجيل الخروج', text:'سيتمكن من الدخول من جهاز جديد', background: '#1e293b', color: '#fff', timer: 1500, showConfirmButton:false});
+            }
+        }
+
+        // --- UI HELPERS ---
+        function switchTab(viewId, btn) {
+            document.querySelectorAll('.nav-item').forEach(b => {
+                b.classList.remove('active', 'bg-brand-600', 'text-white', 'shadow-lg');
+                b.classList.add('text-slate-400');
             });
+            btn.classList.add('active', 'bg-brand-600', 'text-white', 'shadow-lg');
+            btn.classList.remove('text-slate-400');
+
+            ['view-dashboard', 'view-tickets', 'view-team'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            document.getElementById('view-' + viewId).classList.remove('hidden');
+            
+            document.getElementById('page-title').innerText = btn.innerText.trim();
+            if(viewId === 'tickets') renderTickets(); 
+        }
+
+        function openModal() { document.getElementById('createModal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('createModal').classList.add('hidden'); }
+        function toggleMenu(id) {
+            document.querySelectorAll('.action-menu').forEach(m => m.classList.remove('show'));
             document.getElementById(id).classList.toggle('show');
         }
+        function copyToClip(t) { navigator.clipboard.writeText(t); Swal.fire({toast:true, position:'top-end', icon:'success', title:'تم النسخ', background:'#1e293b', color:'#fff', showConfirmButton:false, timer:1000}); }
+        function filterTable() { renderTable(); }
+        function showLoading(show) { document.getElementById('loading-indicator').classList.toggle('hidden', !show); }
+        function animateValue(id, end) { document.getElementById(id).innerText = end; }
         
-        // Close menus when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!e.target.closest('td.relative')) {
+        // Click outside closes menu
+        window.onclick = function(event) {
+            if (!event.target.matches('.fa-ellipsis-v') && !event.target.closest('button')) {
                 document.querySelectorAll('.action-menu').forEach(m => m.classList.remove('show'));
             }
-        });
-
-        function action(code, type) {
-            let title = "", text = "", icon = "";
-            if(type === 'ban') { title = "حظر الجهاز؟"; text = "لن يتمكن الطالب من الدخول مرة أخرى."; icon = "warning"; }
-            if(type === 'logout') { title = "تسجيل خروج؟"; text = "سيتم طرد الطالب من الجلسة الحالية."; icon = "info"; }
-            if(type === 'pause') { title = "إيقاف الكود؟"; text = "سيتم تجميد الوقت."; icon = "question"; }
-
-            Swal.fire({
-                title: title,
-                text: text,
-                icon: icon,
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'نعم، نفذ',
-                cancelButtonText: 'إلغاء',
-                background: '#1e293b',
-                color: '#fff'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({ title: 'تم التنفيذ!', icon: 'success', background: '#1e293b', color: '#fff', timer: 1500, showConfirmButton: false });
-                    // Here you call API
-                }
-            });
         }
-
-        function copyCode(text) {
-            navigator.clipboard.writeText(text);
-            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000, background: '#1e293b', color: '#fff' });
-            Toast.fire({ icon: 'success', title: 'تم النسخ للحافظة' });
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.nav-item').forEach(el => {
-                el.classList.remove('active', 'bg-brand-600', 'text-white', 'shadow-lg');
-                el.classList.add('text-slate-400');
-            });
-            event.currentTarget.classList.add('active', 'bg-brand-600', 'text-white', 'shadow-lg');
-            event.currentTarget.classList.remove('text-slate-400');
-
-            if(tab === 'team') {
-                document.getElementById('team-section').classList.remove('hidden');
-                renderTeam();
-            } else {
-                document.getElementById('team-section').classList.add('hidden');
-            }
-        }
-
-        // Init
-        renderTable();
     </script>
 </body>
 </html>
