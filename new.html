@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIZA ELITE | لوحة التحكم المتطورة</title>
+    <title>QUEST FULL | لوحة التحكم</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -106,18 +106,18 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4 p-3 card flex-row">
         <div class="d-flex align-items-center">
-            <i class="fas fa-microchip fa-2x text-warning me-3 ms-2"></i>
+            <i class="fas fa-database fa-2x text-warning me-3 ms-2"></i>
             <div>
-                <h3 class="header-title m-0">GIZA ELITE PANEL</h3>
-                <small class="text-muted">نظام إدارة الطلاب والأجهزة</small>
+                <h3 class="header-title m-0">QUEST FULL DASHBOARD</h3>
+                <small class="text-muted">Connected to: quest-full</small>
             </div>
         </div>
         <div>
             <button class="btn btn-outline-warning me-2" onclick="openAddModal()">
                 <i class="fas fa-plus-circle"></i> كود جديد
             </button>
-            <button class="btn btn-outline-danger" onclick="logout()">
-                <i class="fas fa-power-off"></i> خروج
+            <button class="btn btn-outline-danger" onclick="location.reload()">
+                <i class="fas fa-sync"></i> تحديث
             </button>
         </div>
     </div>
@@ -192,7 +192,7 @@
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="7" class="py-5 text-muted"><i class="fas fa-circle-notch fa-spin"></i> جاري تحميل البيانات من Firebase...</td></tr>
+                    <tr><td colspan="7" class="py-5 text-muted"><i class="fas fa-circle-notch fa-spin"></i> جاري الاتصال بـ quest-full...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -208,8 +208,8 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="editCodeId"> <div class="mb-3">
-                    <label class="text-muted">كود الطالب (يتم توليده تلقائياً عند الإضافة)</label>
-                    <input type="text" id="inpCode" class="form-control text-center text-warning fw-bold" readonly placeholder="AUTO-GEN">
+                    <label class="text-muted">كود الطالب</label>
+                    <input type="text" id="inpCode" class="form-control text-center text-warning fw-bold" placeholder="أو اتركه للتوليد التلقائي">
                 </div>
 
                 <div class="mb-3">
@@ -232,11 +232,6 @@
                         <input type="number" id="inpPrice" class="form-control" placeholder="0">
                     </div>
                 </div>
-
-                <div class="alert alert-dark border-warning d-flex align-items-center" role="alert">
-                    <i class="fas fa-info-circle text-warning me-2"></i>
-                    <small>أي تعديل هنا يتم تحديثه فوراً في جهاز الطالب.</small>
-                </div>
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
@@ -251,43 +246,66 @@
 
 <script>
     // ---------------------------------------------------------
-    // 1. إعدادات Firebase (استخدم نفس بيانات مشروعك القديم هنا)
+    // 1. إعدادات Firebase (تم التحديث ببيانات quest-full)
     // ---------------------------------------------------------
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY_HERE",
-        authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-        databaseURL: "YOUR_DATABASE_URL.firebaseio.com", // تأكد من وضع رابط قاعدة البيانات هنا
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT_ID.appspot.com",
-        messagingSenderId: "123456789",
-        appId: "1:123456789:web:abcdef"
+        apiKey: "AIzaSyDH3cy-jkDphnPGzHUwd4rd9ogZDY7uUgM",
+        authDomain: "quest-full.firebaseapp.com",
+        databaseURL: "https://quest-full-default-rtdb.firebaseio.com",
+        projectId: "quest-full",
+        storageBucket: "quest-full.firebasestorage.app",
+        messagingSenderId: "501161882802",
+        appId: "1:501161882802:web:08d6230eb09741a5c8c5ab",
+        measurementId: "G-NDJ5YVHV1D"
     };
 
     // تهيئة Firebase
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.database();
-    const codesRef = db.ref('codes'); // سنخزن البيانات في مجلد اسمه codes
 
-    // متغيرات عامة
+    // ---------------------------------------------------------
+    // 🔴 هام: اسم الجدول في قاعدة البيانات
+    // أنا خليته "codes" - لو داتا الطلاب عندك في جدول اسمه "students" أو "users" غير الكلمة دي تحت
+    // ---------------------------------------------------------
+    const dbRefName = 'codes'; 
+    const codesRef = db.ref(dbRefName);
+
     let allData = [];
     const modalElement = new bootstrap.Modal(document.getElementById('dataModal'));
 
     // ---------------------------------------------------------
-    // 2. الاستماع للبيانات (Realtime Listener)
+    // 2. جلب البيانات
     // ---------------------------------------------------------
+    console.log("جاري الاتصال بـ Firebase...");
+    
     codesRef.on('value', (snapshot) => {
         const data = snapshot.val();
-        allData = []; // تصفير القائمة
-        
-        if (data) {
-            // تحويل الـ Object إلى Array ليسهل التعامل معه
-            Object.keys(data).forEach(key => {
-                allData.push(data[key]);
-            });
+        console.log("تم استلام البيانات:", data);
+
+        allData = []; 
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = ''; 
+
+        if (!data) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-warning py-4 fw-bold">
+                تم الاتصال بنجاح بـ Quest Full ولكن الجدول (${dbRefName}) فارغ! <br>
+                قم بإضافة كود جديد للتجربة.
+            </td></tr>`;
+            updateStats();
+            return;
         }
+        
+        Object.keys(data).forEach(key => {
+            allData.push({ ...data[key], dbKey: key });
+        });
         
         updateStats();
         renderTable();
+    }, (error) => {
+        console.error("خطأ:", error);
+        tbody.innerHTML = `<tr><td colspan="7" class="text-danger py-4">خطأ في الاتصال: ${error.message} <br> تأكد من Rules القراءة في Firebase</td></tr>`;
     });
 
     // ---------------------------------------------------------
@@ -301,14 +319,18 @@
 
         tbody.innerHTML = '';
 
-        // الفلترة
         const filtered = allData.filter(item => {
-            const matchSearch = (item.name || '').toLowerCase().includes(search) || 
-                              (item.code || '').toLowerCase().includes(search) || 
-                              (item.deviceId || '').toLowerCase().includes(search);
-            const matchMajor = majorFilter === 'all' || item.section === majorFilter;
+            const code = item.code || item.id || '---';
+            const name = item.name || item.studentName || 'بدون اسم';
+            const deviceId = item.deviceId || item.device_id || '';
+            const section = item.section || item.major || 'عام';
+
+            const matchSearch = name.toLowerCase().includes(search) || 
+                              code.toLowerCase().includes(search) || 
+                              deviceId.toLowerCase().includes(search);
             
-            // منطق الحالة
+            const matchMajor = majorFilter === 'all' || section === majorFilter;
+            
             let status = 'active';
             if(item.isBanned) status = 'banned';
             else if(item.isSuspended) status = 'suspended';
@@ -319,54 +341,46 @@
         });
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-muted py-4">لا توجد بيانات مطابقة</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-muted py-4">لا توجد نتائج</td></tr>';
             return;
         }
 
         filtered.forEach(item => {
-            // تحديد الحالة والشكل
+            const displayCode = item.code || item.id || 'N/A';
+            const displayName = item.name || item.studentName || 'غير مسجل';
+            const displayDevice = item.deviceId || item.device_id || null;
+            const displaySection = item.section || item.major || 'عام';
+            const displayPrice = item.price || item.pricePaid || 0;
+
             let statusBadge = '<span class="badge bg-success">نشط</span>';
             let rowClass = '';
             
             if (item.isBanned) {
                 statusBadge = '<span class="badge bg-danger">محظور</span>';
-                rowClass = 'table-danger'; // تلوين الصف بالأحمر الخفيف
+                rowClass = 'table-danger';
             } else if (item.isSuspended) {
                 statusBadge = '<span class="badge bg-warning text-dark">موقوف</span>';
                 rowClass = 'table-warning';
             }
 
-            // عرض الجهاز
-            const deviceHTML = item.deviceId 
-                ? `<span class="device-badge active" title="${item.deviceId}"><i class="fas fa-mobile-alt"></i> مرتبط</span>`
+            const deviceHTML = displayDevice 
+                ? `<span class="device-badge active">${displayDevice}</span>`
                 : `<span class="device-badge">--</span>`;
 
             const row = `
-                <tr class="${item.isBanned ? 'opacity-75' : ''}">
-                    <td class="code-font">${item.code}</td>
-                    <td class="fw-bold">${item.name || 'بدون اسم'}</td>
+                <tr class="${rowClass} ${item.isBanned ? 'opacity-75' : ''}">
+                    <td class="code-font">${displayCode}</td>
+                    <td class="fw-bold">${displayName}</td>
                     <td>${deviceHTML}</td>
-                    <td>${item.section || 'عام'}</td>
-                    <td class="text-warning fw-bold">${item.price || 0}</td>
+                    <td>${displaySection}</td>
+                    <td class="text-warning fw-bold">${displayPrice}</td>
                     <td>${statusBadge}</td>
                     <td>
-                        <button class="btn btn-outline-info btn-action" title="تعديل" onclick="openEdit('${item.code}')"><i class="fas fa-pen"></i></button>
-                        
-                        <button class="btn btn-outline-warning btn-action" title="إيقاف مؤقت" onclick="toggleSuspend('${item.code}', ${item.isSuspended || false})">
-                            <i class="fas ${item.isSuspended ? 'fa-play' : 'fa-pause'}"></i>
-                        </button>
-                        
-                        <button class="btn btn-outline-light btn-action" title="فك ربط الجهاز (Log Out)" onclick="unbindDevice('${item.code}')">
-                            <i class="fas fa-unlink text-danger"></i>
-                        </button>
-                        
-                        <button class="btn btn-outline-danger btn-action" title="حظر / فك حظر" onclick="toggleBan('${item.code}', ${item.isBanned || false})">
-                            <i class="fas ${item.isBanned ? 'fa-check' : 'fa-ban'}"></i>
-                        </button>
-                        
-                        <button class="btn btn-danger btn-action" title="حذف نهائي" onclick="deleteCode('${item.code}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button class="btn btn-outline-info btn-action" onclick="openEdit('${item.dbKey}')"><i class="fas fa-pen"></i></button>
+                        <button class="btn btn-outline-warning btn-action" onclick="toggleSuspend('${item.dbKey}', ${item.isSuspended || false})"><i class="fas fa-pause"></i></button>
+                        <button class="btn btn-outline-light btn-action" onclick="unbindDevice('${item.dbKey}')"><i class="fas fa-unlink text-danger"></i></button>
+                        <button class="btn btn-outline-danger btn-action" onclick="toggleBan('${item.dbKey}', ${item.isBanned || false})"><i class="fas fa-ban"></i></button>
+                        <button class="btn btn-danger btn-action" onclick="deleteCode('${item.dbKey}')"><i class="fas fa-trash"></i></button>
                     </td>
                 </tr>
             `;
@@ -375,40 +389,38 @@
     }
 
     // ---------------------------------------------------------
-    // 4. العمليات (CRUD + Actions)
+    // 4. العمليات (CRUD)
     // ---------------------------------------------------------
-
-    // فتح مودال الإضافة
     function openAddModal() {
         document.getElementById('modalTitle').innerText = "إضافة كود جديد";
-        document.getElementById('editCodeId').value = ""; // فارغ للإضافة
-        document.getElementById('inpCode').value = generateCode(); // كود عشوائي
+        document.getElementById('editCodeId').value = ""; 
+        document.getElementById('inpCode').value = generateCode();
         document.getElementById('inpName').value = "";
         document.getElementById('inpPrice').value = "";
         modalElement.show();
     }
 
-    // فتح مودال التعديل
-    function openEdit(code) {
-        const student = allData.find(s => s.code === code);
+    function openEdit(key) {
+        const student = allData.find(s => s.dbKey === key);
         if(!student) return;
 
-        document.getElementById('modalTitle').innerText = "تعديل: " + student.name;
-        document.getElementById('editCodeId').value = code;
-        document.getElementById('inpCode').value = code;
-        document.getElementById('inpName').value = student.name;
-        document.getElementById('inpSection').value = student.section;
-        document.getElementById('inpPrice').value = student.price;
+        document.getElementById('modalTitle').innerText = "تعديل: " + (student.name || student.studentName);
+        document.getElementById('editCodeId').value = key;
+        document.getElementById('inpCode').value = student.code || student.id;
+        document.getElementById('inpName').value = student.name || student.studentName;
+        document.getElementById('inpSection').value = student.section || student.major;
+        document.getElementById('inpPrice').value = student.price || student.pricePaid;
         modalElement.show();
     }
 
-    // الحفظ في Firebase
     function saveData() {
-        const code = document.getElementById('inpCode').value;
-        const isEdit = document.getElementById('editCodeId').value !== "";
+        const key = document.getElementById('editCodeId').value;
+        const isEdit = key !== "";
+        let codeVal = document.getElementById('inpCode').value;
+        if(!codeVal) codeVal = generateCode(); // لو فاضي، ولد واحد
         
         const newData = {
-            code: code,
+            code: codeVal,
             name: document.getElementById('inpName').value,
             section: document.getElementById('inpSection').value,
             price: Number(document.getElementById('inpPrice').value),
@@ -416,115 +428,57 @@
         };
 
         if (!isEdit) {
-            // في حالة الإضافة الجديدة نضع قيم افتراضية
             newData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-            newData.deviceId = null;
-            newData.isBanned = false;
-            newData.isSuspended = false;
+            db.ref(dbRefName).push(newData).then(onSuccess).catch(onError);
+        } else {
+            db.ref(dbRefName + '/' + key).update(newData).then(onSuccess).catch(onError);
         }
-
-        // الحفظ (Update or Set)
-        // نستخدم update لعدم مسح الحقول الأخرى مثل deviceId عند التعديل
-        db.ref('codes/' + code).update(newData)
-            .then(() => {
-                Swal.fire({
-                    icon: 'success', 
-                    title: 'تم الحفظ', 
-                    background: '#1f2833', color: '#fff',
-                    timer: 1500, showConfirmButton: false
-                });
-                modalElement.hide();
-            })
-            .catch(err => Swal.fire('خطأ', err.message, 'error'));
     }
 
-    // فك ربط الجهاز (تصفير الـ Device ID)
-    function unbindDevice(code) {
-        Swal.fire({
-            title: 'إخراج الطالب؟',
-            text: "سيتم السماح له بالدخول من جهاز جديد.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'نعم، فك الربط',
-            cancelButtonText: 'إلغاء',
-            background: '#1f2833', color: '#fff'
-        }).then((res) => {
-            if (res.isConfirmed) {
-                db.ref('codes/' + code).update({ deviceId: null })
-                .then(() => Swal.fire({icon:'success', title:'تم فك الربط', toast:true, position:'top-end', background:'#1f2833', color:'#fff', showConfirmButton:false, timer:1500}));
-            }
-        });
+    function unbindDevice(key) {
+        if(confirm("هل أنت متأكد من فك ربط الجهاز؟")) {
+            db.ref(dbRefName + '/' + key).update({ deviceId: null, device_id: null });
+        }
     }
 
-    // الحظر (Ban)
-    function toggleBan(code, currentStatus) {
-        const action = currentStatus ? "فك الحظر عن" : "حظر";
-        Swal.fire({
-            title: `هل أنت متأكد من ${action} الكود؟`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'نعم',
-            background: '#1f2833', color: '#fff'
-        }).then((res) => {
-            if (res.isConfirmed) {
-                db.ref('codes/' + code).update({ isBanned: !currentStatus });
-            }
-        });
+    function toggleBan(key, currentStatus) {
+        if(confirm(currentStatus ? "فك الحظر؟" : "حظر الطالب؟")) {
+            db.ref(dbRefName + '/' + key).update({ isBanned: !currentStatus });
+        }
     }
 
-    // الإيقاف المؤقت
-    function toggleSuspend(code, currentStatus) {
-        db.ref('codes/' + code).update({ isSuspended: !currentStatus });
+    function toggleSuspend(key, currentStatus) {
+        db.ref(dbRefName + '/' + key).update({ isSuspended: !currentStatus });
     }
 
-    // الحذف
-    function deleteCode(code) {
-        Swal.fire({
-            title: 'حذف نهائي؟',
-            text: "لا يمكن التراجع عن هذا الإجراء!",
-            icon: 'error',
-            showCancelButton: true,
-            confirmButtonText: 'حذف',
-            background: '#1f2833', color: '#fff'
-        }).then((res) => {
-            if (res.isConfirmed) {
-                db.ref('codes/' + code).remove();
-            }
-        });
+    function deleteCode(key) {
+        if(confirm("حذف نهائي؟ لا يمكن التراجع!")) {
+            db.ref(dbRefName + '/' + key).remove();
+        }
     }
 
-    // ---------------------------------------------------------
-    // 5. أدوات مساعدة
-    // ---------------------------------------------------------
+    function onSuccess() {
+        Swal.fire({icon:'success', title:'تمت العملية بنجاح', timer:1000, showConfirmButton:false, background:'#1f2833', color:'#fff'});
+        modalElement.hide();
+    }
+    function onError(err) {
+        Swal.fire('خطأ', err.message, 'error');
+    }
     function generateCode() {
-        // توليد كود عشوائي مثل: 2024-ABC-123
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        const randomStr = chars.charAt(Math.floor(Math.random() * chars.length)) + 
-                          chars.charAt(Math.floor(Math.random() * chars.length)) + 
-                          chars.charAt(Math.floor(Math.random() * chars.length));
-        const randomNum = Math.floor(100 + Math.random() * 900);
-        return `2024-${randomStr}-${randomNum}`;
+        return '2025-' + Math.floor(1000 + Math.random() * 9000);
     }
-
     function updateStats() {
         document.getElementById('totalStudents').innerText = allData.length;
         document.getElementById('activeStudents').innerText = allData.filter(x => !x.isBanned && !x.isSuspended).length;
         document.getElementById('bannedStudents').innerText = allData.filter(x => x.isBanned).length;
-        
-        const totalRev = allData.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
-        document.getElementById('totalRevenue').innerText = totalRev.toLocaleString();
+        const total = allData.reduce((acc, curr) => acc + (Number(curr.price) || Number(curr.pricePaid) || 0), 0);
+        document.getElementById('totalRevenue').innerText = total;
     }
 
-    // تفعيل البحث عند الكتابة
+    // Events
     document.getElementById('searchInput').addEventListener('input', renderTable);
     document.getElementById('filterMajor').addEventListener('change', renderTable);
     document.getElementById('filterStatus').addEventListener('change', renderTable);
-
-    function logout() {
-        // يمكنك إضافة كود تسجيل الخروج الخاص بفايربيز هنا
-        location.reload();
-    }
-
 </script>
 </body>
 </html>
