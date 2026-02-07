@@ -80,6 +80,7 @@
         }
         .btn-primary { background: var(--accent); color: #000; font-weight: 900; }
         .btn-primary:hover { background: #ff8533; box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-2px); }
+        .btn-primary:disabled { background: #555; cursor: not-allowed; transform: none; box-shadow: none; }
         
         .btn-danger { background: rgba(231, 76, 60, 0.1); color: var(--danger); border: 1px solid var(--danger); }
         .btn-danger:hover { background: var(--danger); color: #fff; }
@@ -261,6 +262,7 @@
                 <option value="علمي علوم">علمي علوم</option>
                 <option value="علمي رياضة">علمي رياضة</option>
                 <option value="أزهر">أزهر</option>
+                <option value="عام">عام</option>
             </select>
             
             <label style="color:#888;">قيمة الاشتراك</label>
@@ -391,7 +393,7 @@
             } catch (e) { console.error(e); }
         }
 
-        // ================= ACTION LOGIC (FIXED) =================
+        // ================= ACTION LOGIC (UPDATED & FIXED) =================
         function openCreateModal(mode) {
             document.getElementById('modal-title').innerText = mode === 'trial' ? "GENERATE TRIAL" : "NEW ENGINEER CODE";
             document.getElementById('edit-mode-id').value = "";
@@ -414,7 +416,9 @@
             
             document.getElementById('m-name').value = item.name;
             document.getElementById('m-section').value = item.section || "عام";
-            document.getElementById('m-price').value = item.pricePaid;
+            
+            // محاولة جلب السعر بأكثر من اسم محتمل
+            document.getElementById('m-price').value = item.pricePaid || item.price || 0;
             
             // Hide duration when editing profile
             document.getElementById('duration-section').style.display = 'none';
@@ -422,7 +426,7 @@
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        // --- FIXED SUBMIT FUNCTION ---
+        // --- NEW FIXED SUBMIT FUNCTION ---
         async function submitSave() {
             const editId = document.getElementById('edit-mode-id').value;
             const btn = document.querySelector('#actionModal .btn-primary');
@@ -433,22 +437,31 @@
 
             if(!nameVal) return alert("الاسم مطلوب!");
 
+            // 1. تجهيز البيانات بأسماء صحيحة تطابق قاعدة البيانات
             const payload = {
                 admin_uuid: currentUser.uid,
+                
+                // إرسال الاسم بأكتر من صيغة
                 name: nameVal,
-                student_name: nameVal, // Compatibility
+                student_name: nameVal, 
+                studentName: nameVal, 
+
                 section: sectionVal,
-                price: parseFloat(priceVal) || 0
+                
+                // إرسال السعر بصيغ مختلفة
+                price: parseFloat(priceVal) || 0,
+                pricePaid: parseFloat(priceVal) || 0,
+                amount: parseFloat(priceVal) || 0
             };
 
             btn.disabled = true; 
-            btn.innerText = "Processing...";
+            btn.innerText = "جاري الحفظ...";
 
             try {
                 if (editId) {
-                    // UPDATE MODE
-                    payload.code = editId; 
-                    payload.action = 'update_student';
+                    // --- وضع التعديل (UPDATE) ---
+                    payload.code = editId;
+                    payload.action = 'update_student'; 
                     
                     const res = await fetch(`${SERVER_URL}/take-action`, { 
                         method: 'POST', 
@@ -456,15 +469,18 @@
                         body: JSON.stringify(payload) 
                     });
                     
+                    const responseData = await res.json(); 
+
                     if (res.ok) { 
                         closeModal(); 
-                        await refreshData(); 
-                        alert("تم التحديث بنجاح ✅"); 
+                        await refreshData(); // تحديث الجدول فوراً
+                        alert("تم تحديث بيانات الطالب بنجاح ✅"); 
                     } else {
-                        alert("حدث خطأ في السيرفر");
+                        console.error("Server Error:", responseData);
+                        alert("حدث خطأ في السيرفر: " + (responseData.message || "فشل التحديث"));
                     }
                 } else {
-                    // CREATE MODE
+                    // --- وضع الإنشاء (CREATE) ---
                     payload.duration_type = document.getElementById('m-duration').value;
                     payload.custom_days = parseInt(document.getElementById('m-days').value) || 0;
                     
@@ -481,11 +497,16 @@
                         document.getElementById('successModal').style.display = 'flex';
                         refreshData();
                     } else {
-                        alert("لم يتم إنشاء الكود");
+                        alert("لم يتم إنشاء الكود: " + (data.message || "خطأ غير معروف"));
                     }
                 }
-            } catch (e) { console.error(e); alert("Connection Error"); }
-            finally { btn.disabled = false; btn.innerText = "حفظ البيانات"; }
+            } catch (e) { 
+                console.error(e); 
+                alert("خطأ في الاتصال بالسيرفر! تأكد من الإنترنت."); 
+            } finally { 
+                btn.disabled = false; 
+                btn.innerText = "حفظ البيانات"; 
+            }
         }
 
         // ================= CHARTS =================
@@ -533,7 +554,7 @@
             });
         }
 
-        // ================= TABLE RENDERER (UPDATED) =================
+        // ================= TABLE RENDERER =================
         function renderTable() {
             const head = document.getElementById('table-head');
             const body = document.getElementById('table-body');
@@ -541,7 +562,6 @@
 
             if (currentView === 'banned') { renderBannedView(); return; }
             
-            // --- UPDATED HEADERS: ADDED DEVICE ID ---
             head.innerHTML = `<tr>
                 <th>CODE</th>
                 <th>ENGINEER NAME</th>
@@ -558,10 +578,11 @@
             list.forEach(item => {
                 const badge = item.isTrial ? '<span style="color:#f1c40f; border:1px solid #f1c40f; padding:0 3px; font-size:10px; margin-right:5px">TRIAL</span>' : '';
                 
-                // --- LOGIC FOR DEVICE ID DISPLAY ---
                 const deviceDisplay = item.deviceId 
                     ? `<span style="font-family:'Fira Code'; color:#45a29e; font-size:0.85rem; letter-spacing:1px;">${item.deviceId}</span>` 
                     : `<span style="color:#555; font-size:0.8rem; font-style:italic;">-- PENDING --</span>`;
+
+                const priceDisplay = item.pricePaid || item.price || 0;
 
                 const row = `
                     <tr>
@@ -572,7 +593,7 @@
 
                         <td>${item.addedByAdmin}</td>
                         <td>${formatDuration(item)}</td>
-                        <td style="color:#2ecc71; font-weight:bold">${item.pricePaid}</td>
+                        <td style="color:#2ecc71; font-weight:bold">${priceDisplay}</td>
                         <td style="display:flex;">
                             <button class="act-btn btn-c-code" title="Copy Code" onclick="copyText('${item.code}')"><i class="fas fa-copy"></i></button>
                             <button class="act-btn btn-eject" title="Log Out" onclick="quickAction('${item.code}', 'eject_device')"><i class="fas fa-sign-out-alt"></i></button>
