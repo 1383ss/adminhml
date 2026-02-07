@@ -3,309 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIZA ELITE | Control Room</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <title>مدير أكواد التفعيل - المنصة التعليمية</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-
     <style>
-        :root { --bg: #000000; --panel: #111; --border: #333; --accent: #ff6b00; --text: #eee; }
-        body { background: var(--bg); color: var(--text); font-family: 'Cairo', sans-serif; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        
-        /* الهيدر */
-        .header { background: var(--panel); padding: 10px 20px; border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: center; height: 50px; }
-        
-        /* تقسيم الشاشة */
-        .main-layout { display: flex; flex: 1; height: calc(100vh - 50px); }
-        
-        /* الجزء اليمين: الجدول */
-        .list-section { flex: 2; border-left: 1px solid var(--border); overflow-y: auto; padding: 10px; }
-        
-        /* الجزء الشمال: التعديل */
-        .editor-section { flex: 1; background: #0a0a0a; padding: 20px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-        
-        /* الجدول */
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: right; color: #888; border-bottom: 1px solid var(--border); padding: 10px; font-size: 0.9rem; }
-        td { padding: 10px; border-bottom: 1px solid #222; vertical-align: middle; }
-        tr:hover { background: #1a1a1a; cursor: pointer; }
-        .row-selected { background: rgba(255, 107, 0, 0.1) !important; border-right: 3px solid var(--accent); }
-        
-        /* الفورم */
-        label { color: var(--accent); font-size: 0.8rem; margin-top: 15px; display: block; }
-        input, select { width: 100%; background: #222; border: 1px solid #444; color: #fff; padding: 10px; font-family: 'Fira Code'; margin-top: 5px; box-sizing: border-box; }
-        input:focus { border-color: var(--accent); outline: none; }
-        
-        .btn { padding: 12px; border: none; font-weight: bold; cursor: pointer; width: 100%; margin-top: 20px; text-transform: uppercase; }
-        .btn-save { background: var(--accent); color: #000; }
-        .btn-save:hover { background: #ff8533; }
-        
-        /* شاشة اللوج */
-        #console-log { margin-top: auto; background: #000; border: 1px dashed #444; padding: 10px; height: 150px; overflow-y: auto; font-family: 'Fira Code'; font-size: 0.8rem; color: #0f0; }
-        
-        /* شاشة الدخول */
-        #login-view { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; justify-content: center; align-items: center; }
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f4f6f9;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 12px;
+        }
+        .table thead th {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: 500;
+        }
+        .action-btn {
+            margin: 0 2px;
+            padding: 5px 10px;
+        }
+        .status-badge {
+            font-size: 0.85em;
+            padding: 5px 10px;
+            border-radius: 20px;
+        }
+        .device-id {
+            font-family: monospace;
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #d63384;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
 
-    <div id="login-view">
-        <div style="text-align: center; width: 300px;">
-            <i class="fas fa-shield-alt fa-3x" style="color: var(--accent); margin-bottom: 20px;"></i>
-            <h2 style="color: #fff;">CONTROL ROOM</h2>
-            <input type="email" id="email" placeholder="Email">
-            <input type="password" id="password" placeholder="Password">
-            <button class="btn btn-save" onclick="login()">ENTER SYSTEM</button>
-        </div>
-    </div>
-
-    <div class="header">
-        <div><i class="fas fa-server"></i> GIZA ELITE SYSTEM</div>
-        <button onclick="logout()" style="background:none; border:none; color:red; cursor:pointer;"><i class="fas fa-power-off"></i> خروج</button>
-    </div>
-
-    <div class="main-layout">
-        
-        <div class="editor-section">
-            <h3 style="margin: 0 0 20px 0; border-bottom: 1px solid #333; padding-bottom: 10px;">
-                <i class="fas fa-edit"></i> لوحة التحكم المباشر
-            </h3>
+<div class="container-fluid py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-11">
             
-            <div id="editor-form" style="display:none; opacity: 1;">
-                <input type="hidden" id="edit-code">
-                
-                <label>كود الطالب (للقراءة فقط)</label>
-                <input type="text" id="view-code" disabled style="color:#555; cursor: not-allowed;">
-
-                <label>اسم الطالب</label>
-                <input type="text" id="edit-name">
-
-                <label>السعر (EGP)</label>
-                <input type="number" id="edit-price">
-
-                <label>الشعبة</label>
-                <select id="edit-section">
-                    <option value="عام">عام</option>
-                    <option value="علمي علوم">علمي علوم</option>
-                    <option value="علمي رياضة">علمي رياضة</option>
-                    <option value="أدبي">أدبي</option>
-                </select>
-
-                <button class="btn btn-save" onclick="saveChanges()">حفظ التعديلات الآن 🚀</button>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-primary fw-bold"><i class="fas fa-barcode"></i> إدارة أكواد الطلاب</h2>
+                <button class="btn btn-success"><i class="fas fa-plus"></i> إنشاء كود جديد</button>
             </div>
 
-            <div id="empty-msg" style="color:#666; text-align:center; margin-top:50px;">
-                اضغط على أي طالب من القائمة لتعديله
-                <br><br>
-                <button class="btn" style="background:#333; color:#fff" onclick="prepareCreate()">+ أو أنشئ كود جديد</button>
-                
-                <div id="create-options" style="display:none; text-align:right; margin-top:20px;">
-                    <label>الاسم الجديد</label>
-                    <input type="text" id="new-name-c">
-                    <label>المدة</label>
-                    <select id="new-dur-c"><option value="month">شهر</option><option value="trial">تجربة</option></select>
-                    <button class="btn btn-save" onclick="createNew()">إنشاء</button>
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <label class="form-label text-muted">بحث سريع</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="fas fa-search text-muted"></i></span>
+                                <input type="text" id="searchInput" class="form-control" placeholder="ابحث بالكود أو اسم الطالب...">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label text-muted">فلترة بالشعبة</label>
+                            <select class="form-select">
+                                <option value="all">الكل</option>
+                                <option value="sci">علمي علوم</option>
+                                <option value="math">علمي رياضة</option>
+                                <option value="lit">أدبي</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div id="console-log">System Ready...</div>
-        </div>
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0 text-center">
+                            <thead>
+                                <tr>
+                                    <th>الكود</th>
+                                    <th>اسم الطالب</th>
+                                    <th>معرف الجهاز (Device ID)</th>
+                                    <th>الشعبة</th>
+                                    <th>السعر</th>
+                                    <th>الحالة</th>
+                                    <th style="min-width: 200px;">إجراءات التحكم</th>
+                                </tr>
+                            </thead>
+                            <tbody id="codesTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
 
-        <div class="list-section">
-            <input type="text" id="search" placeholder="بحث سريع..." onkeyup="filterList()" style="margin-bottom: 10px;">
-            <div id="loading" style="display:none; text-align:center; color:var(--accent);">جاري التحميل...</div>
-            <table id="students-table">
-                <thead>
-                    <tr>
-                        <th>الكود</th>
-                        <th>الاسم</th>
-                        <th>السعر</th>
-                        <th>الحالة</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body"></tbody>
-            </table>
         </div>
-
     </div>
+</div>
 
-    <script>
-        // --- إعدادات ---
-        const ADMINS = ["0zb8DE5GgeYobn0wMzaXiDAPbiO2", "YFYNXb6sBEPkwfikuYBBVe6ggZN2", "Zh16pJVYpwZet02RGbRPgdwFfoE2", "5cY88LU42yfwjlOng4ik6aADm863"];
-        const API = "https://admey.vercel.app/api/admin";
-        
-        firebase.initializeApp({ apiKey: "AIzaSyD7PB4meIc-r2ijKzheD7P868CfKdsVej0", authDomain: "full-mark1.firebaseapp.com" });
-        const auth = firebase.auth();
-        let currentUserUid = "";
-        let allData = [];
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تعديل بيانات الكود</h5>
+                <button type="button" class="btn-close m-0" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <div class="mb-3">
+                        <label class="form-label">اسم الطالب</label>
+                        <input type="text" class="form-control" id="editName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الشعبة</label>
+                        <select class="form-select" id="editMajor">
+                            <option value="علمي علوم">علمي علوم</option>
+                            <option value="علمي رياضة">علمي رياضة</option>
+                            <option value="أدبي">أدبي</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">سعر الكود</label>
+                        <input type="number" class="form-control" id="editPrice">
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> تنبيه: أي تعديل هنا سيتم تحديثه تلقائياً على جهاز الطالب عند اتصاله القادم.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary" onclick="saveChanges()">حفظ التعديلات</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        // --- وظائف اللوج (Console Log) ---
-        function log(msg, type='info') {
-            const el = document.getElementById('console-log');
-            const color = type === 'error' ? 'red' : (type === 'success' ? '#0f0' : '#ccc');
-            el.innerHTML += `<div style="color:${color}; margin-bottom:5px;">> ${msg}</div>`;
-            el.scrollTop = el.scrollHeight;
-        }
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-        // --- الدخول ---
-        async function login() {
-            try {
-                const u = await auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value);
-                if (!ADMINS.includes(u.user.uid)) throw "Not Allowed";
-            } catch(e) { alert("خطأ دخول"); }
-        }
+<script>
+    // بيانات وهمية للتجربة (Mock Data)
+    let students = [
+        { id: 1, code: "2024-XYS-99", name: "أحمد محمد علي", deviceId: "A1:B2:C3:D4", major: "علمي علوم", price: 150, status: "active" },
+        { id: 2, code: "2024-ABC-12", name: "سارة محمود", deviceId: "F5:E6:D7:C8", major: "أدبي", price: 120, status: "suspended" },
+        { id: 3, code: "2024-KLO-55", name: "كريم عبد الله", deviceId: "11:22:33:44", major: "علمي رياضة", price: 150, status: "banned" },
+    ];
 
-        auth.onAuthStateChanged(u => {
-            if(u && ADMINS.includes(u.uid)) {
-                currentUserUid = u.uid;
-                document.getElementById('login-view').style.display = 'none';
-                fetchStudents();
-            } else {
-                document.getElementById('login-view').style.display = 'flex';
+    const tableBody = document.getElementById('codesTableBody');
+
+    // دالة رسم الجدول
+    function renderTable(data) {
+        tableBody.innerHTML = '';
+        data.forEach(student => {
+            let statusBadge = '';
+            let rowClass = '';
+            
+            if(student.status === 'active') statusBadge = '<span class="badge bg-success status-badge">نشط</span>';
+            else if(student.status === 'suspended') {
+                statusBadge = '<span class="badge bg-warning text-dark status-badge">موقوف مؤقتاً</span>';
+                rowClass = 'table-warning';
+            }
+            else if(student.status === 'banned') {
+                statusBadge = '<span class="badge bg-danger status-badge">محظور نهائياً</span>';
+                rowClass = 'table-danger';
+            }
+
+            const row = `
+                <tr class="${rowClass}">
+                    <td class="fw-bold">${student.code}</td>
+                    <td>${student.name}</td>
+                    <td><span class="device-id">${student.deviceId || 'غير مقترن'}</span></td>
+                    <td>${student.major}</td>
+                    <td>${student.price} ج.م</td>
+                    <td>${statusBadge}</td>
+                    <td>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary action-btn" title="تعديل" onclick="openEditModal(${student.id})"><i class="fas fa-edit"></i></button>
+                            <button class="btn btn-sm btn-outline-warning action-btn" title="إيقاف مؤقت" onclick="toggleSuspend(${student.id})"><i class="fas fa-pause"></i></button>
+                            <button class="btn btn-sm btn-outline-dark action-btn" title="فك ربط الجهاز" onclick="unbindDevice(${student.id})"><i class="fas fa-mobile-alt"></i></button>
+                            <button class="btn btn-sm btn-outline-danger action-btn" title="حظر الكود" onclick="banCode(${student.id})"><i class="fas fa-ban"></i></button>
+                            <button class="btn btn-sm btn-danger action-btn" title="حذف نهائي" onclick="deleteCode(${student.id})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tableBody.innerHTML += row;
+        });
+    }
+
+    // دالة البحث
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        const term = e.target.value.toLowerCase();
+        const filtered = students.filter(s => s.name.includes(term) || s.code.toLowerCase().includes(term));
+        renderTable(filtered);
+    });
+
+    // --- العمليات (Logic Mockup) ---
+
+    // 1. فك ربط الجهاز (Unbind / Log out)
+    function unbindDevice(id) {
+        Swal.fire({
+            title: 'هل أنت متأكد؟',
+            text: "سيتم إخراج الطالب من جهازه الحالي والسماح له بالدخول من جهاز جديد.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، فك الربط',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // هنا تضع كود الـ API الخاص بالباك اند
+                // fetch('/api/unbind', { method: 'POST', body: ... })
+                
+                const student = students.find(s => s.id === id);
+                student.deviceId = ""; // تصفير الجهاز
+                renderTable(students);
+                Swal.fire('تم!', 'تم فك ربط الجهاز بنجاح.', 'success');
             }
         });
-        function logout() { auth.signOut(); }
+    }
 
-        // --- جلب البيانات ---
-        async function fetchStudents() {
-            log("جاري سحب البيانات من السيرفر...");
-            document.getElementById('loading').style.display = 'block';
-            try {
-                const res = await fetch(`${API}/dashboard-data?admin_uuid=${currentUserUid}&target_admin=all`);
-                const json = await res.json();
-                allData = json.codes || [];
-                log(`تم تحميل ${allData.length} طالب بنجاح.`, 'success');
-                renderTable(allData);
-            } catch(e) {
-                log("فشل الاتصال: " + e, 'error');
+    // 2. حظر الكود (Ban)
+    function banCode(id) {
+        const student = students.find(s => s.id === id);
+        student.status = 'banned';
+        renderTable(students);
+        Swal.fire('تم الحظر', 'تم حظر الكود ومنع الطالب من الدخول.', 'error');
+    }
+
+    // 3. إيقاف مؤقت (Suspend)
+    function toggleSuspend(id) {
+        const student = students.find(s => s.id === id);
+        if(student.status === 'suspended') student.status = 'active';
+        else student.status = 'suspended';
+        renderTable(students);
+    }
+
+    // 4. حذف نهائي
+    function deleteCode(id) {
+        Swal.fire({
+            title: 'حذف نهائي؟',
+            text: "لن تتمكن من استعادة هذا الكود مرة أخرى!",
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonText: 'حذف',
+            cancelButtonText: 'تراجع'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                students = students.filter(s => s.id !== id);
+                renderTable(students);
+                Swal.fire('تم الحذف', 'تم حذف الكود بنجاح.', 'success');
             }
-            document.getElementById('loading').style.display = 'none';
-        }
+        });
+    }
 
-        // --- عرض الجدول ---
-        function renderTable(data) {
-            const tbody = document.getElementById('table-body');
-            tbody.innerHTML = '';
-            // نعرض أول 100 بس عشان السرعة
-            data.slice(0, 100).forEach(s => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td style="font-family:'Fira Code'; color:var(--accent)">${s.code}</td>
-                    <td>${s.name}</td>
-                    <td>${s.pricePaid || s.price || 0}</td>
-                    <td>${s.section || '-'}</td>
-                `;
-                tr.onclick = () => selectStudent(s, tr);
-                tbody.appendChild(tr);
-            });
-        }
+    // 5. تعديل البيانات (Edit)
+    let currentEditId = null;
+    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
 
-        // --- اختيار طالب للتعديل ---
-        function selectStudent(student, rowElement) {
-            // تلوين الصف المختار
-            document.querySelectorAll('tr').forEach(r => r.classList.remove('row-selected'));
-            rowElement.classList.add('row-selected');
+    function openEditModal(id) {
+        const student = students.find(s => s.id === id);
+        currentEditId = id;
+        document.getElementById('editName').value = student.name;
+        document.getElementById('editMajor').value = student.major;
+        document.getElementById('editPrice').value = student.price;
+        editModal.show();
+    }
 
-            // إظهار فورم التعديل وإخفاء رسالة الفراغ
-            document.getElementById('empty-msg').style.display = 'none';
-            document.getElementById('editor-form').style.display = 'block';
+    function saveChanges() {
+        const student = students.find(s => s.id === currentEditId);
+        student.name = document.getElementById('editName').value;
+        student.major = document.getElementById('editMajor').value;
+        student.price = document.getElementById('editPrice').value;
+        
+        // هنا يتم إرسال البيانات للسيرفر
+        // fetch('/api/update-student', ...)
+        
+        renderTable(students);
+        editModal.hide();
+        Swal.fire('تم التحديث', 'تم تعديل البيانات وسيتم مزامنتها مع جهاز الطالب.', 'success');
+    }
 
-            // ملء البيانات
-            document.getElementById('edit-code').value = student.code;
-            document.getElementById('view-code').value = student.code;
-            document.getElementById('edit-name').value = student.name;
-            document.getElementById('edit-price').value = student.pricePaid || student.price || 0;
-            document.getElementById('edit-section').value = (student.section && student.section !== "undefined") ? student.section : "عام";
-            
-            log(`تم اختيار الطالب: ${student.name}`);
-        }
+    // تشغيل الجدول عند التحميل
+    renderTable(students);
 
-        // --- تنفيذ الحفظ (نفس كود التصليح) ---
-        async function saveChanges() {
-            const code = document.getElementById('edit-code').value;
-            const name = document.getElementById('edit-name').value;
-            const price = document.getElementById('edit-price').value;
-            const section = document.getElementById('edit-section').value;
-
-            if(!code || !name) return log("خطأ: البيانات ناقصة", 'error');
-
-            log("جاري إرسال التعديل للسيرفر...", 'info');
-            
-            const payload = {
-                admin_uuid: currentUserUid,
-                action: 'update_student', // نفس الاكشن اللي اشتغل
-                code: code,
-                name: name,
-                student_name: name,
-                section: section,
-                price: parseFloat(price),
-                pricePaid: parseFloat(price)
-            };
-
-            try {
-                const res = await fetch(`${API}/take-action`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-
-                const json = await res.json();
-
-                if (res.ok) {
-                    log("✅ تم الحفظ بنجاح! السيرفر رد بـ OK", 'success');
-                    // تحديث البيانات محلياً عشان متضطرش تعمل ريفريش
-                    const idx = allData.findIndex(s => s.code === code);
-                    if(idx !== -1) {
-                        allData[idx].name = name;
-                        allData[idx].pricePaid = price;
-                        allData[idx].section = section;
-                        renderTable(allData); // إعادة رسم الجدول
-                    }
-                } else {
-                    log("❌ السيرفر رفض الطلب: " + JSON.stringify(json), 'error');
-                }
-            } catch(e) {
-                log("⚠️ خطأ في الشبكة: " + e, 'error');
-            }
-        }
-
-        // --- البحث ---
-        function filterList() {
-            const term = document.getElementById('search').value.toLowerCase();
-            const filtered = allData.filter(s => s.name.toLowerCase().includes(term) || s.code.toLowerCase().includes(term));
-            renderTable(filtered);
-        }
-
-        // --- الإنشاء السريع ---
-        function prepareCreate() {
-            document.getElementById('create-options').style.display = 'block';
-        }
-        async function createNew() {
-            const name = document.getElementById('new-name-c').value;
-            const dur = document.getElementById('new-dur-c').value;
-            if(!name) return log("اكتب الاسم", 'error');
-            
-            log("جاري إنشاء كود...", 'info');
-            const res = await fetch(`${API}/create-code`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({
-                    admin_uuid: currentUserUid,
-                    name: name, student_name: name,
-                    duration_type: dur,
-                    price: 0
-                })
-            });
-            const d = await res.json();
-            if(d.code) {
-                log(`✅ تم الإنشاء: ${d.code}`, 'success');
-                alert(`الكود الجديد: ${d.code}`);
-                fetchStudents(); // تحديث القائمة
-            } else {
-                log("فشل الإنشاء", 'error');
-            }
-        }
-    </script>
+</script>
 </body>
 </html>
