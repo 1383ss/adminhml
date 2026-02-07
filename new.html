@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUEST FULL | لوحة التحكم</title>
+    <title>REPLY FULL | لوحة التحكم</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,7 +11,6 @@
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 
     <style>
         :root {
@@ -30,7 +29,6 @@
             overflow-x: hidden;
         }
 
-        /* تنسيقات الجدول والبطاقات */
         .card {
             background-color: var(--bg-card);
             border: 1px solid rgba(69, 162, 158, 0.2);
@@ -45,7 +43,6 @@
             text-shadow: 0 0 10px rgba(102, 252, 241, 0.3);
         }
 
-        /* الحقول */
         .form-control, .form-select {
             background-color: #121418;
             border: 1px solid #333;
@@ -59,7 +56,6 @@
             box-shadow: 0 0 0 0.2rem rgba(255, 107, 0, 0.25);
         }
 
-        /* الجدول */
         .table-dark-custom {
             --bs-table-bg: var(--bg-card);
             --bs-table-color: var(--text-main);
@@ -76,7 +72,6 @@
             font-weight: bold;
         }
         
-        /* الأزرار */
         .btn-action {
             width: 35px; height: 35px;
             padding: 0;
@@ -87,7 +82,6 @@
         }
         .btn-action:hover { transform: translateY(-3px); }
 
-        /* حالة الجهاز */
         .device-badge {
             background: #111;
             border: 1px dashed #555;
@@ -106,15 +100,15 @@
     
     <div class="d-flex justify-content-between align-items-center mb-4 p-3 card flex-row">
         <div class="d-flex align-items-center">
-            <i class="fas fa-database fa-2x text-warning me-3 ms-2"></i>
+            <i class="fas fa-server fa-2x text-warning me-3 ms-2"></i>
             <div>
-                <h3 class="header-title m-0">QUEST FULL DASHBOARD</h3>
-                <small class="text-muted">Connected to: quest-full</small>
+                <h3 class="header-title m-0">REPLY FULL DASHBOARD</h3>
+                <small class="text-muted">Connected to: reply-full</small>
             </div>
         </div>
         <div>
             <button class="btn btn-outline-warning me-2" onclick="openAddModal()">
-                <i class="fas fa-plus-circle"></i> كود جديد
+                <i class="fas fa-plus-circle"></i> إضافة جديد
             </button>
             <button class="btn btn-outline-danger" onclick="location.reload()">
                 <i class="fas fa-sync"></i> تحديث
@@ -126,19 +120,19 @@
         <div class="col-md-3">
             <div class="card p-3">
                 <h2 id="totalStudents" class="text-white fw-bold">0</h2>
-                <small class="text-muted">إجمالي الأكواد</small>
+                <small class="text-muted">العدد الكلي</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card p-3" style="border-bottom: 3px solid var(--accent-cyan);">
                 <h2 id="activeStudents" class="text-info fw-bold">0</h2>
-                <small class="text-muted">نشط حالياً</small>
+                <small class="text-muted">نشط</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="card p-3" style="border-bottom: 3px solid var(--accent-orange);">
                 <h2 id="totalRevenue" class="text-warning fw-bold">0</h2>
-                <small class="text-muted">إجمالي المبيعات (ج.م)</small>
+                <small class="text-muted">المبيعات</small>
             </div>
         </div>
         <div class="col-md-3">
@@ -154,19 +148,10 @@
             <div class="col-md-6">
                 <div class="input-group">
                     <span class="input-group-text bg-dark border-secondary text-light"><i class="fas fa-search"></i></span>
-                    <input type="text" id="searchInput" class="form-control" placeholder="بحث باسم الطالب، الكود، أو الجهاز...">
+                    <input type="text" id="searchInput" class="form-control" placeholder="بحث سريع...">
                 </div>
             </div>
-            <div class="col-md-3">
-                <select id="filterMajor" class="form-select">
-                    <option value="all">كل الشعب</option>
-                    <option value="علمي علوم">علمي علوم</option>
-                    <option value="علمي رياضة">علمي رياضة</option>
-                    <option value="أدبي">أدبي</option>
-                    <option value="عام">عام</option>
-                </select>
-            </div>
-            <div class="col-md-3">
+            <div class="col-md-6">
                 <select id="filterStatus" class="form-select">
                     <option value="all">كل الحالات</option>
                     <option value="active">نشط</option>
@@ -182,17 +167,15 @@
             <table class="table table-dark-custom table-hover align-middle mb-0 text-center">
                 <thead>
                     <tr>
-                        <th>الكود</th>
-                        <th>الطالب</th>
-                        <th>الجهاز (Device ID)</th>
-                        <th>الشعبة</th>
-                        <th>السعر</th>
+                        <th>ID / Code</th>
+                        <th>الاسم / العنوان</th>
+                        <th>بيانات إضافية</th>
                         <th>الحالة</th>
                         <th style="width: 200px;">التحكم</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <tr><td colspan="7" class="py-5 text-muted"><i class="fas fa-circle-notch fa-spin"></i> جاري الاتصال بـ quest-full...</td></tr>
+                    <tr><td colspan="5" class="py-5 text-muted"><i class="fas fa-circle-notch fa-spin"></i> جاري الاتصال بـ reply-full...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -203,39 +186,27 @@
     <div class="modal-dialog">
         <div class="modal-content" style="background: var(--bg-card); border: 1px solid var(--accent-orange);">
             <div class="modal-header border-secondary">
-                <h5 class="modal-title text-white" id="modalTitle">بيانات الطالب</h5>
+                <h5 class="modal-title text-white" id="modalTitle">بيانات السجل</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="editCodeId"> <div class="mb-3">
-                    <label class="text-muted">كود الطالب</label>
-                    <input type="text" id="inpCode" class="form-control text-center text-warning fw-bold" placeholder="أو اتركه للتوليد التلقائي">
-                </div>
-
+                <input type="hidden" id="editCodeId">
                 <div class="mb-3">
-                    <label class="text-muted">اسم الطالب</label>
-                    <input type="text" id="inpName" class="form-control" placeholder="الاسم ثلاثي">
+                    <label class="text-muted">الكود / المعرف</label>
+                    <input type="text" id="inpCode" class="form-control text-center text-warning fw-bold">
                 </div>
-
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="text-muted">الشعبة</label>
-                        <select id="inpSection" class="form-select">
-                            <option value="علمي علوم">علمي علوم</option>
-                            <option value="علمي رياضة">علمي رياضة</option>
-                            <option value="أدبي">أدبي</option>
-                            <option value="عام">عام</option>
-                        </select>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <label class="text-muted">سعر الكود</label>
-                        <input type="number" id="inpPrice" class="form-control" placeholder="0">
-                    </div>
+                <div class="mb-3">
+                    <label class="text-muted">الاسم</label>
+                    <input type="text" id="inpName" class="form-control">
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted">السعر / القيمة</label>
+                    <input type="number" id="inpPrice" class="form-control" placeholder="0">
                 </div>
             </div>
             <div class="modal-footer border-secondary">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                <button type="button" class="btn btn-warning fw-bold" onclick="saveData()">حفظ البيانات</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-warning fw-bold" onclick="saveData()">حفظ</button>
             </div>
         </div>
     </div>
@@ -246,17 +217,17 @@
 
 <script>
     // ---------------------------------------------------------
-    // 1. إعدادات Firebase (تم التحديث ببيانات quest-full)
+    // 1. إعدادات Firebase (مشروع reply-full)
     // ---------------------------------------------------------
-    const firebaseConfigTickets = {
-            apiKey: "AIzaSyCm1yAULuM1D3ScjS9NUB2nCV_R-Y67QD4",
-            authDomain: "reply-full.firebaseapp.com",
-            databaseURL: "https://reply-full-default-rtdb.firebaseio.com",
-            projectId: "reply-full",
-            storageBucket: "reply-full.firebasestorage.app",
-            messagingSenderId: "67591498026",
-            appId: "1:67591498026:web:ebad8cfd2d79d3038cd653",
-            measurementId: "G-J0WRD5YP1E"
+    const firebaseConfig = {
+        apiKey: "AIzaSyCm1yAULuM1D3ScjS9NUB2nCV_R-Y67QD4",
+        authDomain: "reply-full.firebaseapp.com",
+        databaseURL: "https://reply-full-default-rtdb.firebaseio.com",
+        projectId: "reply-full",
+        storageBucket: "reply-full.firebasestorage.app",
+        messagingSenderId: "67591498026",
+        appId: "1:67591498026:web:ebad8cfd2d79d3038cd653",
+        measurementId: "G-J0WRD5YP1E"
     };
 
     // تهيئة Firebase
@@ -266,8 +237,9 @@
     const db = firebase.database();
 
     // ---------------------------------------------------------
-    // 🔴 هام: اسم الجدول في قاعدة البيانات
-    // أنا خليته "codes" - لو داتا الطلاب عندك في جدول اسمه "students" أو "users" غير الكلمة دي تحت
+    // 🔴 هام جداً: اسم الجدول في الداتابيز
+    // بما ان ده مشروع الرسايل، ممكن يكون الاسم "tickets" أو "support_tickets"
+    // جرب تغير 'codes' لاسم الجدول الصح لو مظهرش بيانات
     // ---------------------------------------------------------
     const dbRefName = 'codes'; 
     const codesRef = db.ref(dbRefName);
@@ -275,10 +247,7 @@
     let allData = [];
     const modalElement = new bootstrap.Modal(document.getElementById('dataModal'));
 
-    // ---------------------------------------------------------
-    // 2. جلب البيانات
-    // ---------------------------------------------------------
-    console.log("جاري الاتصال بـ Firebase...");
+    console.log("جاري الاتصال بـ reply-full...");
     
     codesRef.on('value', (snapshot) => {
         const data = snapshot.val();
@@ -289,9 +258,9 @@
         tbody.innerHTML = ''; 
 
         if (!data) {
-            tbody.innerHTML = `<tr><td colspan="7" class="text-warning py-4 fw-bold">
-                تم الاتصال بنجاح بـ Quest Full ولكن الجدول (${dbRefName}) فارغ! <br>
-                قم بإضافة كود جديد للتجربة.
+            tbody.innerHTML = `<tr><td colspan="5" class="text-warning py-4 fw-bold">
+                تم الاتصال بـ reply-full ولكن الجدول (${dbRefName}) فارغ! <br>
+                تأكد من اسم الجدول (codes, tickets, users؟).
             </td></tr>`;
             updateStats();
             return;
@@ -305,31 +274,22 @@
         renderTable();
     }, (error) => {
         console.error("خطأ:", error);
-        tbody.innerHTML = `<tr><td colspan="7" class="text-danger py-4">خطأ في الاتصال: ${error.message} <br> تأكد من Rules القراءة في Firebase</td></tr>`;
+        document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="text-danger">خطأ: ${error.message}</td></tr>`;
     });
 
-    // ---------------------------------------------------------
-    // 3. رسم الجدول
-    // ---------------------------------------------------------
     function renderTable() {
         const tbody = document.getElementById('tableBody');
         const search = document.getElementById('searchInput').value.toLowerCase();
-        const majorFilter = document.getElementById('filterMajor').value;
         const statusFilter = document.getElementById('filterStatus').value;
 
         tbody.innerHTML = '';
 
         const filtered = allData.filter(item => {
-            const code = item.code || item.id || '---';
-            const name = item.name || item.studentName || 'بدون اسم';
-            const deviceId = item.deviceId || item.device_id || '';
-            const section = item.section || item.major || 'عام';
-
-            const matchSearch = name.toLowerCase().includes(search) || 
-                              code.toLowerCase().includes(search) || 
-                              deviceId.toLowerCase().includes(search);
+            // محاولة قراءة البيانات بأي اسم محتمل
+            const code = item.code || item.id || item.ticketId || '---';
+            const name = item.name || item.studentName || item.subject || '---';
             
-            const matchMajor = majorFilter === 'all' || section === majorFilter;
+            const matchSearch = name.toLowerCase().includes(search) || code.toLowerCase().includes(search);
             
             let status = 'active';
             if(item.isBanned) status = 'banned';
@@ -337,21 +297,19 @@
             
             const matchStatus = statusFilter === 'all' || status === statusFilter;
 
-            return matchSearch && matchMajor && matchStatus;
+            return matchSearch && matchStatus;
         });
 
         if (filtered.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-muted py-4">لا توجد نتائج</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-4">لا توجد نتائج</td></tr>';
             return;
         }
 
         filtered.forEach(item => {
-            const displayCode = item.code || item.id || 'N/A';
-            const displayName = item.name || item.studentName || 'غير مسجل';
-            const displayDevice = item.deviceId || item.device_id || null;
-            const displaySection = item.section || item.major || 'عام';
-            const displayPrice = item.price || item.pricePaid || 0;
-
+            const displayCode = item.code || item.id || item.ticketId || 'N/A';
+            const displayName = item.name || item.studentName || item.subject || 'غير معروف';
+            const displayExtra = item.section || item.message || item.device_id || '---';
+            
             let statusBadge = '<span class="badge bg-success">نشط</span>';
             let rowClass = '';
             
@@ -363,22 +321,14 @@
                 rowClass = 'table-warning';
             }
 
-            const deviceHTML = displayDevice 
-                ? `<span class="device-badge active">${displayDevice}</span>`
-                : `<span class="device-badge">--</span>`;
-
             const row = `
                 <tr class="${rowClass} ${item.isBanned ? 'opacity-75' : ''}">
                     <td class="code-font">${displayCode}</td>
                     <td class="fw-bold">${displayName}</td>
-                    <td>${deviceHTML}</td>
-                    <td>${displaySection}</td>
-                    <td class="text-warning fw-bold">${displayPrice}</td>
+                    <td>${displayExtra}</td>
                     <td>${statusBadge}</td>
                     <td>
                         <button class="btn btn-outline-info btn-action" onclick="openEdit('${item.dbKey}')"><i class="fas fa-pen"></i></button>
-                        <button class="btn btn-outline-warning btn-action" onclick="toggleSuspend('${item.dbKey}', ${item.isSuspended || false})"><i class="fas fa-pause"></i></button>
-                        <button class="btn btn-outline-light btn-action" onclick="unbindDevice('${item.dbKey}')"><i class="fas fa-unlink text-danger"></i></button>
                         <button class="btn btn-outline-danger btn-action" onclick="toggleBan('${item.dbKey}', ${item.isBanned || false})"><i class="fas fa-ban"></i></button>
                         <button class="btn btn-danger btn-action" onclick="deleteCode('${item.dbKey}')"><i class="fas fa-trash"></i></button>
                     </td>
@@ -388,11 +338,8 @@
         });
     }
 
-    // ---------------------------------------------------------
-    // 4. العمليات (CRUD)
-    // ---------------------------------------------------------
     function openAddModal() {
-        document.getElementById('modalTitle').innerText = "إضافة كود جديد";
+        document.getElementById('modalTitle').innerText = "إضافة جديد";
         document.getElementById('editCodeId').value = ""; 
         document.getElementById('inpCode').value = generateCode();
         document.getElementById('inpName').value = "";
@@ -401,15 +348,14 @@
     }
 
     function openEdit(key) {
-        const student = allData.find(s => s.dbKey === key);
-        if(!student) return;
+        const item = allData.find(s => s.dbKey === key);
+        if(!item) return;
 
-        document.getElementById('modalTitle').innerText = "تعديل: " + (student.name || student.studentName);
+        document.getElementById('modalTitle').innerText = "تعديل";
         document.getElementById('editCodeId').value = key;
-        document.getElementById('inpCode').value = student.code || student.id;
-        document.getElementById('inpName').value = student.name || student.studentName;
-        document.getElementById('inpSection').value = student.section || student.major;
-        document.getElementById('inpPrice').value = student.price || student.pricePaid;
+        document.getElementById('inpCode').value = item.code || item.id || item.ticketId;
+        document.getElementById('inpName').value = item.name || item.studentName || item.subject;
+        document.getElementById('inpPrice').value = item.price || 0;
         modalElement.show();
     }
 
@@ -417,12 +363,11 @@
         const key = document.getElementById('editCodeId').value;
         const isEdit = key !== "";
         let codeVal = document.getElementById('inpCode').value;
-        if(!codeVal) codeVal = generateCode(); // لو فاضي، ولد واحد
+        if(!codeVal) codeVal = generateCode();
         
         const newData = {
             code: codeVal,
             name: document.getElementById('inpName').value,
-            section: document.getElementById('inpSection').value,
             price: Number(document.getElementById('inpPrice').value),
             updatedAt: firebase.database.ServerValue.TIMESTAMP
         };
@@ -435,49 +380,38 @@
         }
     }
 
-    function unbindDevice(key) {
-        if(confirm("هل أنت متأكد من فك ربط الجهاز؟")) {
-            db.ref(dbRefName + '/' + key).update({ deviceId: null, device_id: null });
-        }
-    }
-
     function toggleBan(key, currentStatus) {
-        if(confirm(currentStatus ? "فك الحظر؟" : "حظر الطالب؟")) {
+        if(confirm(currentStatus ? "فك الحظر؟" : "حظر؟")) {
             db.ref(dbRefName + '/' + key).update({ isBanned: !currentStatus });
         }
     }
 
-    function toggleSuspend(key, currentStatus) {
-        db.ref(dbRefName + '/' + key).update({ isSuspended: !currentStatus });
-    }
-
     function deleteCode(key) {
-        if(confirm("حذف نهائي؟ لا يمكن التراجع!")) {
+        if(confirm("حذف نهائي؟")) {
             db.ref(dbRefName + '/' + key).remove();
         }
     }
 
     function onSuccess() {
-        Swal.fire({icon:'success', title:'تمت العملية بنجاح', timer:1000, showConfirmButton:false, background:'#1f2833', color:'#fff'});
+        Swal.fire({icon:'success', title:'تم', timer:1000, showConfirmButton:false, background:'#1f2833', color:'#fff'});
         modalElement.hide();
     }
     function onError(err) {
         Swal.fire('خطأ', err.message, 'error');
     }
     function generateCode() {
-        return '2025-' + Math.floor(1000 + Math.random() * 9000);
+        return 'ID-' + Math.floor(1000 + Math.random() * 9000);
     }
     function updateStats() {
         document.getElementById('totalStudents').innerText = allData.length;
-        document.getElementById('activeStudents').innerText = allData.filter(x => !x.isBanned && !x.isSuspended).length;
+        document.getElementById('activeStudents').innerText = allData.filter(x => !x.isBanned).length;
         document.getElementById('bannedStudents').innerText = allData.filter(x => x.isBanned).length;
-        const total = allData.reduce((acc, curr) => acc + (Number(curr.price) || Number(curr.pricePaid) || 0), 0);
+        const total = allData.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
         document.getElementById('totalRevenue').innerText = total;
     }
 
     // Events
     document.getElementById('searchInput').addEventListener('input', renderTable);
-    document.getElementById('filterMajor').addEventListener('change', renderTable);
     document.getElementById('filterStatus').addEventListener('change', renderTable);
 </script>
 </body>
