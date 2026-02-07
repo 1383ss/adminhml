@@ -176,6 +176,9 @@
                 <div id="role-label" style="color: var(--accent); opacity: 0.8; margin-top: 5px; font-weight:bold;"></div>
             </div>
             <div style="display: flex; gap: 10px;">
+                <button class="btn" style="background: #9b59b6; color: white;" onclick="openCreateModal('bulk')">
+                    <i class="fas fa-layer-group"></i> باقة (10 أكواد)
+                </button>
                 <button class="btn btn-success" onclick="openCreateModal('normal')"><i class="fas fa-plus-square"></i> كود جديد</button>
                 <button class="btn btn-danger" onclick="logout()"><i class="fas fa-power-off"></i></button>
             </div>
@@ -275,7 +278,7 @@
         <div class="modal-content" style="text-align: center; border-color: var(--success);">
             <i class="fas fa-check-circle fa-4x" style="color: var(--success);"></i>
             <h2 style="color: #fff; margin:10px 0">CREATED SUCCESSFULLY</h2>
-            <div id="generated-code" style="background: #000; border: 1px dashed var(--success); padding: 20px; font-size: 2rem; color: var(--success); font-family: 'Fira Code', monospace; margin: 20px 0;"></div>
+            <div id="generated-code" style="background: #000; border: 1px dashed var(--success); padding: 20px; font-size: 1.5rem; color: var(--success); font-family: 'Fira Code', monospace; margin: 20px 0; max-height: 300px; overflow-y: auto;"></div>
             <button class="btn btn-success" onclick="copyAndClose()">نسخ وإغلاق</button>
         </div>
     </div>
@@ -308,6 +311,7 @@
         let allTickets = [];
         let currentTicketTab = 'pending';
         let currentReplyTicketId = null;
+        let currentMode = 'normal'; // values: 'normal', 'trial', 'bulk'
 
         const firebaseConfigMain = { apiKey: "AIzaSyD7PB4meIc-r2ijKzheD7P868CfKdsVej0", databaseURL: "https://full-mark1-default-rtdb.firebaseio.com" };
         const mainApp = firebase.initializeApp(firebaseConfigMain); 
@@ -325,6 +329,17 @@
         };
         const ticketApp = firebase.initializeApp(firebaseConfigTickets, "ticketsApp");
         const ticketDB = ticketApp.database();
+
+        // --- Helper: Escape HTML to prevent XSS ---
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
 
         async function handleLogin() {
             const email = document.getElementById('email').value;
@@ -375,8 +390,14 @@
         }
 
         function openCreateModal(mode) {
-            document.getElementById('modal-title').innerText = mode === 'trial' ? "GENERATE TRIAL" : "NEW ENGINEER CODE";
-            document.getElementById('edit-mode-id').value = ""; // Empty for create
+            currentMode = mode;
+            
+            let title = "NEW ENGINEER CODE";
+            if (mode === 'trial') title = "GENERATE TRIAL";
+            if (mode === 'bulk') title = "BULK GENERATE (10 CODES)";
+            
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('edit-mode-id').value = ""; 
             document.getElementById('duration-section').style.display = 'block';
             
             document.getElementById('m-name').value = "";
@@ -388,14 +409,12 @@
         }
 
         function openEditModal(code) {
+            currentMode = 'normal';
             const item = dbData.codes.find(c => c.code === code);
             if (!item) return alert("Error: Student not found locally.");
             
             document.getElementById('modal-title').innerText = "EDIT ENGINEER DATA";
-            
-            // Critical: Setting the ID
-            const idInput = document.getElementById('edit-mode-id');
-            idInput.value = code;
+            document.getElementById('edit-mode-id').value = code;
             
             document.getElementById('m-name').value = item.name;
             document.getElementById('m-section').value = item.section || "عام";
@@ -406,11 +425,11 @@
         }
 
         // ==========================
-        //  FIXED SUBMIT FUNCTION
+        //  FIXED SUBMIT FUNCTION (BULK & SINGLE)
         // ==========================
         async function submitSave() {
             const btn = document.querySelector('#actionModal .btn-primary');
-            const editId = document.getElementById('edit-mode-id').value; // Get Code
+            const editId = document.getElementById('edit-mode-id').value; 
             
             const nameVal = document.getElementById('m-name').value;
             const sectionVal = document.getElementById('m-section').value;
@@ -418,63 +437,79 @@
 
             if(!nameVal) return alert("الاسم مطلوب!");
 
-            // Common Payload
-            const payload = {
+            // Base Payload
+            const basePayload = {
                 admin_uuid: currentUser.uid,
-                name: nameVal,
-                student_name: nameVal, // Compatibility
-                studentName: nameVal,  // Compatibility
                 section: sectionVal,
                 price: parseFloat(priceVal) || 0,
                 pricePaid: parseFloat(priceVal) || 0,
-                amount: parseFloat(priceVal) || 0
+                amount: parseFloat(priceVal) || 0,
+                duration_type: document.getElementById('m-duration').value,
+                custom_days: parseInt(document.getElementById('m-days').value) || 0
             };
 
             btn.disabled = true; 
-            btn.innerText = "Processing...";
 
             try {
                 if (editId && editId !== "") {
                     // === UPDATE MODE ===
-                    // Using the action that SUCCEEDED in the console test: 'update_student'
-                    payload.code = editId;
-                    payload.action = 'update_student'; 
+                    basePayload.code = editId;
+                    basePayload.action = 'update_student';
+                    basePayload.name = nameVal;
+                    basePayload.student_name = nameVal;
                     
+                    btn.innerText = "Processing...";
                     const res = await fetch(`${SERVER_URL}/take-action`, { 
                         method: 'POST', 
                         headers: {'Content-Type': 'application/json'}, 
-                        body: JSON.stringify(payload) 
+                        body: JSON.stringify(basePayload) 
                     });
                     
-                    const responseData = await res.json(); 
-
                     if (res.ok) { 
                         alert("✅ تم التحديث بنجاح! سيتم تحديث الصفحة الآن.");
-                        location.reload(); // Force reload to show changes
+                        location.reload(); 
                     } else {
-                        console.error("Server Error:", responseData);
-                        alert("خطأ من السيرفر: " + (responseData.message || JSON.stringify(responseData)));
+                        const err = await res.json();
+                        alert("خطأ من السيرفر: " + (err.message || "Error"));
                     }
 
                 } else {
                     // === CREATE MODE ===
-                    payload.duration_type = document.getElementById('m-duration').value;
-                    payload.custom_days = parseInt(document.getElementById('m-days').value) || 0;
-                    
-                    const res = await fetch(`${SERVER_URL}/create-code`, { 
-                        method: 'POST', 
-                        headers: {'Content-Type': 'application/json'}, 
-                        body: JSON.stringify(payload) 
-                    });
-                    
-                    const data = await res.json();
-                    if(data.code) {
-                        closeModal();
-                        document.getElementById('generated-code').innerText = data.code;
-                        document.getElementById('successModal').style.display = 'flex';
-                        refreshData();
+                    if (currentMode === 'bulk') {
+                        // Bulk Logic (10 Codes)
+                        let generatedCodesList = [];
+                        for (let i = 1; i <= 10; i++) {
+                            btn.innerText = `جاري إنشاء ${i} / 10...`;
+                            const currentPayload = { 
+                                ...basePayload, 
+                                name: `${nameVal} ${i}`, 
+                                student_name: `${nameVal} ${i}`,
+                                studentName: `${nameVal} ${i}`
+                            };
+                            
+                            const res = await fetch(`${SERVER_URL}/create-code`, { 
+                                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(currentPayload) 
+                            });
+                            const data = await res.json();
+                            if(data.code) generatedCodesList.push(data.code);
+                        }
+                        showSuccessCodes(generatedCodesList);
+
                     } else {
-                        alert("فشل الإنشاء: " + (data.message || "Unknown error"));
+                        // Single Mode
+                        btn.innerText = "Processing...";
+                        const payload = { ...basePayload, name: nameVal, student_name: nameVal, studentName: nameVal };
+                        
+                        const res = await fetch(`${SERVER_URL}/create-code`, { 
+                            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) 
+                        });
+                        
+                        const data = await res.json();
+                        if(data.code) {
+                            showSuccessCodes([data.code]);
+                        } else {
+                            alert("فشل الإنشاء: " + (data.message || "Unknown error"));
+                        }
                     }
                 }
             } catch (e) { 
@@ -488,6 +523,7 @@
 
         // ================= CHARTS =================
         function initCharts() {
+            if(!dbData.codes) return;
             const ctx1 = document.getElementById('usersChart').getContext('2d');
             const ctx2 = document.getElementById('financeChart').getContext('2d');
             
@@ -594,7 +630,7 @@
             });
         }
 
-        // ================= TICKETS SYSTEM =================
+        // ================= TICKETS SYSTEM (SECURE) =================
         function loadTicketsSystem() {
             ticketDB.ref('support_tickets').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -626,21 +662,27 @@
 
             filtered.forEach(ticket => {
                 const date = new Date(ticket.timestamp).toLocaleString('en-GB');
+                // Security: Escape HTML
+                const safeMessage = escapeHtml(ticket.message);
+                const safeSubject = escapeHtml(ticket.subject);
+                const safeName = escapeHtml(ticket.studentName);
+                const safeReply = escapeHtml(ticket.adminReply);
+
                 const card = `
                     <div class="ticket-card">
                         <div style="display:flex; justify-content:space-between; color:#666; font-size:0.8rem; margin-bottom:10px;">
                             <span>#${ticket.id.substr(-6)}</span>
                             <span>${date}</span>
                         </div>
-                        <div class="t-subject">${ticket.subject}</div>
-                        <p style="color:#aaa; background:#000; padding:10px; border-radius:5px; margin:10px 0;">${ticket.message}</p>
+                        <div class="t-subject">${safeSubject}</div>
+                        <p style="color:#aaa; background:#000; padding:10px; border-radius:5px; margin:10px 0;">${safeMessage}</p>
                         <div style="font-size:0.85rem; color:var(--accent); margin-bottom:15px">
-                            <i class="fas fa-user"></i> ${ticket.studentName} | <i class="fas fa-code"></i> ${ticket.studentCode}
+                            <i class="fas fa-user"></i> ${safeName} | <i class="fas fa-code"></i> ${ticket.studentCode}
                         </div>
                         ${ticket.isReplied ? 
-                            `<div style="border-right:2px solid var(--success); padding-right:10px; margin-bottom:10px; color:#fff"><small style="color:var(--success)">RD:</small> ${ticket.adminReply}</div>
+                            `<div style="border-right:2px solid var(--success); padding-right:10px; margin-bottom:10px; color:#fff"><small style="color:var(--success)">RD:</small> ${safeReply}</div>
                              <button onclick="deleteReplyOnly('${ticket.id}')" class="btn btn-danger" style="width:100%; font-size:0.8rem">حذف الرد</button>` : 
-                            `<button onclick="openReplyModal('${ticket.id}', '${ticket.studentName}', '${ticket.studentCode}')" class="btn btn-primary" style="width:100%">رد الآن</button>`
+                            `<button onclick="openReplyModal('${ticket.id}', '${safeName.replace(/'/g, "\\'")}', '${ticket.studentCode}')" class="btn btn-primary" style="width:100%">رد الآن</button>`
                         }
                     </div>
                 `;
@@ -707,15 +749,27 @@
             refreshData();
         }
 
+        // --- Optimized Duration Formatter ---
         function formatDuration(item) {
             if (item.state !== 'active') return `<span style="color:var(--danger)">EXPIRED</span>`;
-            const rem = item.expiry - Date.now();
+            
+            // Safety check for date format
+            const expiryDate = new Date(item.expiry).getTime(); 
+            if (isNaN(expiryDate)) return `<span style="color:#777">INVALID DATE</span>`;
+
+            const rem = expiryDate - Date.now();
+            
             if (rem <= 0) return `<span style="color:var(--danger)">EXPIRED</span>`;
+            
             if (item.isTrial) {
-                const min = Math.floor(rem/60000);
-                return min < 60 ? `<span style="color:var(--warning)">${min} MIN</span>` : `<span style="color:var(--warning)">${Math.floor(min/60)} HR</span>`;
+                const min = Math.floor(rem / 60000);
+                return min < 60 
+                    ? `<span style="color:var(--warning)">${min} MIN</span>` 
+                    : `<span style="color:var(--warning)">${Math.floor(min / 60)} HR</span>`;
             }
-            return `${Math.ceil(rem / 86400000)} DAYS`;
+            
+            const days = Math.ceil(rem / 86400000);
+            return `<span style="color:${days < 3 ? 'var(--danger)' : '#fff'}">${days} DAYS</span>`;
         }
 
         function filterTable() {
@@ -726,6 +780,17 @@
         function copyText(t) { if(t) navigator.clipboard.writeText(t); }
         function closeModal() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
         function copyAndClose() { copyText(document.getElementById('generated-code').innerText); closeModal(); }
+        
+        // Show multiple codes
+        function showSuccessCodes(codesArray) {
+            closeModal();
+            const container = document.getElementById('generated-code');
+            container.innerHTML = codesArray.join('<br>'); 
+            document.querySelector('#successModal h2').innerText = codesArray.length > 1 ? "10 CODES GENERATED" : "CREATED SUCCESSFULLY";
+            document.getElementById('successModal').style.display = 'flex';
+            refreshData();
+        }
+
         function toggleCustomDays(v) { document.getElementById('m-days').style.display = v === 'custom' ? 'block' : 'none'; }
         function setView(v, b) { currentView = v; document.querySelectorAll('.sub-nav .nav-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); renderTable(); }
     </script>
