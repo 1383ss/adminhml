@@ -3,115 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIZA ELITE | Engineer Zone</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <title>GIZA ELITE | Turbo Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Fira+Code&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <style>
-        :root {
-            --bg: #0b0c10; --card-bg: #1f2833; --accent: #ff6b00; --text: #c5c6c7;
-            --success: #2ecc71; --danger: #e74c3c; --warning: #f1c40f;
-        }
-        * { box-sizing: border-box; font-family: 'Cairo', sans-serif; outline: none; }
-        body { background-color: var(--bg); color: var(--text); margin: 0; min-height: 100vh; background-image: linear-gradient(rgba(255, 107, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 107, 0, 0.05) 1px, transparent 1px); background-size: 40px 40px; }
+        :root { --bg: #121212; --card: #1e1e1e; --accent: #ff6b00; --text: #ddd; }
+        body { background: var(--bg); color: var(--text); font-family: 'Cairo', sans-serif; margin: 0; padding: 20px; }
         
-        /* شاشة الدخول */
-        #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .login-box { background: var(--card-bg); padding: 50px 40px; border-top: 5px solid var(--accent); width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+        /* تحسينات السرعة: إزالة الظلال الثقيلة */
+        .container { max-width: 1400px; margin: auto; }
         
-        /* عناصر الإدخال والأزرار */
-        input, select, textarea { width: 100%; padding: 15px; margin: 10px 0; background: #121418; border: 1px solid #333; color: var(--accent); font-family: 'Fira Code', monospace; }
-        .btn { padding: 12px 25px; border: none; cursor: pointer; font-weight: bold; text-transform: uppercase; display: inline-flex; align-items: center; justify-content: center; gap: 10px; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
+        /* الهيدر */
+        .header { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 15px; border-right: 4px solid var(--accent); margin-bottom: 20px; }
+        .btn { padding: 10px 20px; border: none; cursor: pointer; font-weight: bold; display: inline-flex; gap: 5px; align-items: center; }
         .btn-primary { background: var(--accent); color: #000; }
-        .btn-primary:hover { background: #ff8533; }
-        .btn-danger { background: rgba(231, 76, 60, 0.2); color: var(--danger); border: 1px solid var(--danger); }
-        .btn-success { background: rgba(46, 204, 113, 0.2); color: var(--success); border: 1px solid var(--success); }
-
-        /* اللوحة الرئيسية */
-        #admin-panel { display: none; padding: 20px; max-width: 1800px; margin: auto; }
-        .header { background: var(--card-bg); padding: 20px; display: flex; justify-content: space-between; border-right: 4px solid var(--accent); margin-bottom: 20px; }
+        .btn-danger { background: #d32f2f; color: #fff; }
         
-        /* الجداول */
-        .data-container { background: var(--card-bg); overflow-x: auto; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        th { padding: 15px; background: #161b22; color: var(--accent); text-align: right; }
-        td { padding: 12px 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        tr:hover td { background: rgba(255, 107, 0, 0.05); }
-
+        /* الجدول السريع */
+        .table-wrapper { overflow-x: auto; background: var(--card); border: 1px solid #333; }
+        table { width: 100%; border-collapse: collapse; min-width: 800px; }
+        th { background: #2c2c2c; color: var(--accent); padding: 10px; text-align: right; }
+        td { padding: 8px 10px; border-bottom: 1px solid #333; }
+        tr:hover { background: #252525; }
+        
+        /* أزرار الصفحات */
+        .pagination { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+        .page-btn { background: #333; color: #fff; padding: 8px 15px; border: none; cursor: pointer; }
+        .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
         /* المودال */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-content { background: var(--card-bg); padding: 30px; width: 95%; max-width: 500px; border: 2px solid var(--accent); }
-
-        /* أدوات التحكم */
-        .act-btn { width: 32px; height: 32px; border: none; cursor: pointer; margin-left: 5px; color: #fff; display: inline-flex; justify-content: center; align-items: center; }
-        .btn-edt { background: var(--accent); color: #000; }
-        .btn-del { background: var(--danger); }
-        .btn-copy { background: #3498db; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #222; padding: 30px; width: 400px; border: 2px solid var(--accent); }
+        input, select { width: 100%; padding: 10px; margin: 5px 0 15px; background: #000; border: 1px solid #444; color: #fff; box-sizing: border-box; }
         
-        /* التبويبات */
-        .nav-tab { background: transparent; color: #777; padding: 10px 20px; border: none; cursor: pointer; font-size: 1.1rem; border-bottom: 3px solid transparent; }
-        .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        /* شاشة التحميل */
+        #loader { text-align: center; padding: 50px; color: var(--accent); font-size: 1.5rem; display: none; }
     </style>
 </head>
 <body>
 
-    <div id="login-screen">
-        <div class="login-box">
-            <h2 style="color:#fff; margin-bottom:5px">ENGINEER ZONE</h2>
-            <p style="color:#666; font-size:0.9rem">SECURE ACCESS V2</p>
-            <input type="email" id="email" placeholder="ACCESS ID">
-            <input type="password" id="password" placeholder="SECURITY PIN">
-            <button class="btn btn-primary" style="width:100%; margin-top:15px" onclick="handleLogin()">LOGIN</button>
+    <div id="login-view" style="height: 100vh; display: flex; justify-content: center; align-items: center;">
+        <div style="background: var(--card); padding: 40px; text-align: center; width: 300px; border-top: 4px solid var(--accent);">
+            <h2 style="margin: 0 0 20px;">ENGINEER ZONE</h2>
+            <input type="email" id="email" placeholder="Email">
+            <input type="password" id="password" placeholder="Password">
+            <button class="btn btn-primary" onclick="login()" style="width: 100%;">دخول</button>
         </div>
     </div>
 
-    <div id="admin-panel">
+    <div id="app-view" style="display: none;" class="container">
         <div class="header">
+            <h3>SYSTEM ONLINE <span id="user-role" style="font-size: 0.8rem; color: #888;"></span></h3>
             <div>
-                <h3 id="welcome-msg" style="margin:0; color:#fff">SYSTEM ONLINE</h3>
-                <div id="role-label" style="color:var(--accent); font-size:0.9rem"></div>
-            </div>
-            <div>
-                <button class="btn btn-success" onclick="openCreateModal()"><i class="fas fa-plus"></i> كود جديد</button>
+                <button class="btn btn-primary" onclick="openModal('create')"><i class="fas fa-plus"></i> إضافة</button>
                 <button class="btn btn-danger" onclick="logout()"><i class="fas fa-power-off"></i></button>
             </div>
         </div>
 
-        <div style="margin-bottom:20px; border-bottom:1px solid #333">
-            <button class="nav-tab active" onclick="switchView('dashboard')">الطلاب</button>
-            <button class="nav-tab" onclick="switchView('tickets')">الرسائل</button>
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <input type="text" id="search-box" placeholder="ابحث بالاسم أو الكود..." onkeyup="handleSearch()" style="margin: 0;">
+            <div style="background: var(--card); padding: 10px; min-width: 150px; text-align: center;">العدد: <span id="total-count">0</span></div>
         </div>
 
-        <div id="dashboard-view">
-            <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="بحث سريع..." style="width:100%; margin-bottom:15px">
-            <div class="data-container">
-                <table id="main-table">
-                    <thead>
-                        <tr><th>Code</th><th>Name</th><th>Section</th><th>Price</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody id="table-body"></tbody>
-                </table>
-            </div>
+        <div id="loader"><i class="fas fa-circle-notch fa-spin"></i> جاري تحميل البيانات...</div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>الكود</th>
+                        <th>الاسم</th>
+                        <th>السعر</th>
+                        <th>الشعبة</th>
+                        <th>إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
         </div>
-        
-        <div id="tickets-view" style="display:none; text-align:center; padding:50px; color:#666">
-            <h3>نظام الرسائل يعمل في الخلفية...</h3>
+
+        <div class="pagination">
+            <button class="page-btn" onclick="changePage(-1)">السابق</button>
+            <span id="page-info" style="padding: 8px;">صفحة 1</span>
+            <button class="page-btn" onclick="changePage(1)">التالي</button>
         </div>
     </div>
 
-    <div id="actionModal" class="modal">
+    <div id="action-modal" class="modal">
         <div class="modal-content">
-            <h3 id="modal-title" style="color:var(--accent); margin-top:0">DATA ENTRY</h3>
+            <h3 id="modal-title" style="color: var(--accent); margin-top: 0;">تعديل البيانات</h3>
             
-            <input type="hidden" id="target-code-hidden">
+            <input type="hidden" id="target-code"> <label>اسم الطالب</label>
+            <input type="text" id="m-name">
             
-            <label>اسم الطالب</label>
-            <input type="text" id="m-name" placeholder="الاسم ثلاثي">
+            <label>السعر (مدفوع)</label>
+            <input type="number" id="m-price">
             
             <label>الشعبة</label>
             <select id="m-section">
@@ -119,230 +108,219 @@
                 <option value="علمي علوم">علمي علوم</option>
                 <option value="علمي رياضة">علمي رياضة</option>
                 <option value="أدبي">أدبي</option>
+                <option value="أزهر">أزهر</option>
             </select>
-            
-            <label>السعر (EGP)</label>
-            <input type="number" id="m-price" value="0">
 
-            <div id="create-options">
-                <label>النوع</label>
+            <div id="create-extra" style="display:none;">
+                <label>المدة</label>
                 <select id="m-duration">
-                    <option value="month">شهر كامل</option>
-                    <option value="trial">تجربة مجانية</option>
+                    <option value="month">شهر</option>
+                    <option value="trial">تجربة</option>
                 </select>
             </div>
 
-            <div style="margin-top:20px; display:flex; gap:10px">
-                <button class="btn btn-primary" style="flex:1" onclick="executeAction()">حفظ / تنفيذ 🚀</button>
-                <button class="btn btn-danger" onclick="closeModals()">إلغاء</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="successModal" class="modal">
-        <div class="modal-content" style="text-align:center; border-color:var(--success)">
-            <i class="fas fa-check-circle fa-4x" style="color:var(--success)"></i>
-            <h2 style="color:#fff">تم بنجاح!</h2>
-            <div id="new-code-display" style="background:#000; color:var(--success); font-size:1.5rem; padding:10px; margin:15px 0; border:1px dashed var(--success)"></div>
-            <button class="btn btn-success" onclick="location.reload()">تحديث الصفحة</button>
+            <button class="btn btn-primary" onclick="submitAction()" style="width: 100%;">حفظ وتنفيذ 🚀</button>
+            <button class="btn btn-danger" onclick="closeModal()" style="width: 100%; margin-top: 10px; background: transparent; border: 1px solid #555;">إلغاء</button>
         </div>
     </div>
 
     <script>
-        // --- 1. الإعدادات ---
-        const ADMIN_MAP = {
-            "0zb8DE5GgeYobn0wMzaXiDAPbiO2": { name: "giza", label: "Eng. Giza", role: "owner" },
-            "YFYNXb6sBEPkwfikuYBBVe6ggZN2": { name: "sara", label: "Eng. Sara", role: "manager" },
-            "Zh16pJVYpwZet02RGbRPgdwFfoE2": { name: "mahmoud", label: "Eng. Mahmoud", role: "staff" },
-            "5cY88LU42yfwjlOng4ik6aADm863": { name: "ahmed", label: "Eng. Ahmed", role: "staff" }
-        };
-        const API_URL = "https://admey.vercel.app/api/admin";
-
-        // Firebase Init
-        const firebaseConfig = { apiKey: "AIzaSyD7PB4meIc-r2ijKzheD7P868CfKdsVej0", databaseURL: "https://full-mark1-default-rtdb.firebaseio.com" };
-        firebase.initializeApp(firebaseConfig);
+        // --- 1. إعدادات النظام ---
+        const ADMINS = ["0zb8DE5GgeYobn0wMzaXiDAPbiO2", "YFYNXb6sBEPkwfikuYBBVe6ggZN2", "Zh16pJVYpwZet02RGbRPgdwFfoE2", "5cY88LU42yfwjlOng4ik6aADm863"];
+        const API = "https://admey.vercel.app/api/admin";
+        
+        firebase.initializeApp({ apiKey: "AIzaSyD7PB4meIc-r2ijKzheD7P868CfKdsVej0", authDomain: "full-mark1.firebaseapp.com" });
         const auth = firebase.auth();
+        let currentUserIdx = "";
 
-        let currentUser = null;
-        let tableData = [];
+        // --- 2. متغيرات البيانات (للسرعة) ---
+        let allStudents = [];      // كل الطلاب هنا
+        let filteredStudents = []; // نتائج البحث هنا
+        let currentPage = 1;
+        const rowsPerPage = 50;    // عرض 50 فقط في كل صفحة للسرعة
 
-        // --- 2. تسجيل الدخول ---
-        async function handleLogin() {
-            const email = document.getElementById('email').value;
-            const pass = document.getElementById('password').value;
+        // --- 3. الدخول ---
+        async function login() {
             try {
-                const res = await auth.signInWithEmailAndPassword(email, pass);
-                if (!ADMIN_MAP[res.user.uid]) throw new Error("Unauthorized");
-            } catch(e) { alert("بيانات الدخول غير صحيحة"); }
+                const user = await auth.signInWithEmailAndPassword(document.getElementById('email').value, document.getElementById('password').value);
+                if (!ADMINS.includes(user.user.uid)) throw new Error("Not Admin");
+            } catch(e) { alert("خطأ في الدخول: " + e.message); }
         }
 
-        auth.onAuthStateChanged(user => {
-            if(user && ADMIN_MAP[user.uid]) {
-                currentUser = { uid: user.uid, ...ADMIN_MAP[user.uid] };
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('admin-panel').style.display = 'block';
-                document.getElementById('welcome-msg').innerText = `WELCOME, ${currentUser.name.toUpperCase()}`;
-                fetchData();
+        auth.onAuthStateChanged(u => {
+            if(u && ADMINS.includes(u.uid)) {
+                currentUserIdx = u.uid;
+                document.getElementById('login-view').style.display = 'none';
+                document.getElementById('app-view').style.display = 'block';
+                loadData();
             } else {
-                document.getElementById('login-screen').style.display = 'flex';
-                document.getElementById('admin-panel').style.display = 'none';
+                document.getElementById('login-view').style.display = 'flex';
+                document.getElementById('app-view').style.display = 'none';
             }
         });
+        function logout() { auth.signOut(); }
 
-        function logout() { auth.signOut(); location.reload(); }
-
-        // --- 3. جلب البيانات ---
-        async function fetchData() {
+        // --- 4. تحميل البيانات (مرة واحدة) ---
+        async function loadData() {
+            document.getElementById('loader').style.display = 'block';
+            document.querySelector('.table-wrapper').style.display = 'none';
             try {
-                const res = await fetch(`${API_URL}/dashboard-data?admin_uuid=${currentUser.uid}&target_admin=all`);
+                // بنطلب كل البيانات مرة واحدة
+                const res = await fetch(`${API}/dashboard-data?admin_uuid=${currentUserIdx}&target_admin=all`);
                 const data = await res.json();
-                tableData = data.codes || [];
-                renderTable();
-            } catch(e) { console.error(e); }
+                allStudents = data.codes || [];
+                filteredStudents = [...allStudents]; // في البداية، المفلتر هو الكل
+                
+                document.getElementById('total-count').innerText = allStudents.length;
+                renderPage();
+            } catch(e) { alert("فشل التحميل: " + e); }
+            finally {
+                document.getElementById('loader').style.display = 'none';
+                document.querySelector('.table-wrapper').style.display = 'block';
+            }
         }
 
-        // --- 4. عرض الجدول ---
-        function renderTable() {
+        // --- 5. البحث السريع (Client Side) ---
+        let searchTimeout;
+        function handleSearch() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const term = document.getElementById('search-box').value.toLowerCase();
+                if (!term) {
+                    filteredStudents = [...allStudents];
+                } else {
+                    filteredStudents = allStudents.filter(s => 
+                        s.code.toLowerCase().includes(term) || 
+                        s.name.toLowerCase().includes(term)
+                    );
+                }
+                currentPage = 1; // ارجع للصفحة الأولى
+                renderPage();
+            }, 300); // استنى 300ms عشان ميهنجش مع الكتابة السريعة
+        }
+
+        // --- 6. رسم الجدول (أهم جزء للسرعة) ---
+        function renderPage() {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
-            tableData.forEach(item => {
-                tbody.innerHTML += `
+
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            const pageData = filteredStudents.slice(start, end);
+
+            document.getElementById('page-info').innerText = `صفحة ${currentPage} من ${Math.ceil(filteredStudents.length / rowsPerPage)}`;
+
+            pageData.forEach(s => {
+                // تحديد السعر المتاح
+                const price = s.pricePaid || s.price || 0;
+                const row = `
                     <tr>
-                        <td style="font-family:'Fira Code'; color:var(--accent)">${item.code}</td>
-                        <td>${item.name}</td>
-                        <td>${item.section || '-'}</td>
-                        <td style="color:var(--success)">${item.pricePaid || 0} EGP</td>
+                        <td style="font-family:'Fira Code'; color:var(--accent)">${s.code}</td>
+                        <td>${s.name}</td>
+                        <td style="color:#2ecc71">${price}</td>
+                        <td>${s.section || '-'}</td>
                         <td>
-                            <button class="act-btn btn-copy" onclick="navigator.clipboard.writeText('${item.code}')"><i class="fas fa-copy"></i></button>
-                            <button class="act-btn btn-edt" onclick="openEdit('${item.code}', '${item.name}', '${item.section}', '${item.pricePaid}')"><i class="fas fa-edit"></i></button>
-                            <button class="act-btn btn-del" onclick="deleteCode('${item.code}')"><i class="fas fa-trash"></i></button>
+                            <button class="btn" style="background:#333; padding:5px 10px" onclick="openEdit('${s.code}', '${s.name}', '${price}', '${s.section}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
                         </td>
                     </tr>
                 `;
+                tbody.insertAdjacentHTML('beforeend', row);
             });
         }
 
-        // --- 5. فتح المودال (إنشاء / تعديل) ---
-        function openCreateModal() {
-            document.getElementById('modal-title').innerText = "إنشاء كود جديد";
-            document.getElementById('target-code-hidden').value = ""; // فاضي عشان ده إنشاء
-            document.getElementById('m-name').value = "";
-            document.getElementById('m-price').value = "0";
-            document.getElementById('create-options').style.display = 'block';
-            document.getElementById('actionModal').style.display = 'flex';
+        function changePage(dir) {
+            const maxPage = Math.ceil(filteredStudents.length / rowsPerPage);
+            if (currentPage + dir > 0 && currentPage + dir <= maxPage) {
+                currentPage += dir;
+                renderPage();
+            }
         }
 
-        function openEdit(code, name, section, price) {
-            document.getElementById('modal-title').innerText = "تعديل بيانات الطالب";
-            // هنا السر: بنحط الكود في الحقل المخفي عشان نستخدمه وقت الحفظ
-            document.getElementById('target-code-hidden').value = code;
+        // --- 7. المودال والإجراءات (نفس كود التصليح) ---
+        function openModal(mode) {
+            document.getElementById('action-modal').style.display = 'flex';
+            if (mode === 'create') {
+                document.getElementById('modal-title').innerText = "إضافة كود جديد";
+                document.getElementById('target-code').value = ""; // فاضي
+                document.getElementById('create-extra').style.display = 'block';
+                document.getElementById('m-name').value = "";
+                document.getElementById('m-price').value = "0";
+            }
+        }
+
+        function openEdit(code, name, price, section) {
+            document.getElementById('action-modal').style.display = 'flex';
+            document.getElementById('modal-title').innerText = "تعديل: " + name;
+            document.getElementById('create-extra').style.display = 'none';
             
+            // تعبئة البيانات
+            document.getElementById('target-code').value = code;
             document.getElementById('m-name').value = name;
-            document.getElementById('m-section').value = section !== 'undefined' ? section : 'عام';
-            document.getElementById('m-price').value = price !== 'undefined' ? price : 0;
-            
-            document.getElementById('create-options').style.display = 'none'; // نخفي خيارات المدة في التعديل
-            document.getElementById('actionModal').style.display = 'flex';
+            document.getElementById('m-price').value = price;
+            document.getElementById('m-section').value = (section && section !== 'undefined') ? section : 'عام';
         }
 
-        function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); }
+        function closeModal() { document.getElementById('action-modal').style.display = 'none'; }
 
-        // --- 6. تنفيذ الأكشن (المنطق الجديد) ---
-        async function executeAction() {
-            const btn = document.querySelector('#actionModal .btn-primary');
-            const targetCode = document.getElementById('target-code-hidden').value;
+        async function submitAction() {
+            const code = document.getElementById('target-code').value;
             const name = document.getElementById('m-name').value;
-            const section = document.getElementById('m-section').value;
             const price = document.getElementById('m-price').value;
+            const section = document.getElementById('m-section').value;
             
-            if(!name) return alert("الاسم مطلوب!");
+            if(!name) return alert("اكتب الاسم!");
 
+            const btn = document.querySelector('#action-modal .btn-primary');
             btn.innerText = "جاري التنفيذ...";
             btn.disabled = true;
 
             const payload = {
-                admin_uuid: currentUser.uid,
+                admin_uuid: currentUserIdx,
                 name: name,
-                student_name: name, // عشان التوافق
+                student_name: name,
                 section: section,
                 price: parseFloat(price),
-                pricePaid: parseFloat(price) // عشان التوافق
+                pricePaid: parseFloat(price)
             };
 
             try {
-                if (targetCode) {
-                    // === حالة التعديل (UPDATE) ===
-                    // نستخدم نفس البايلود اللي نجح في صفحة الإصلاح
-                    payload.code = targetCode;
-                    payload.action = 'update_student'; // الأكشن الصحيح
-
-                    const res = await fetch(`${API_URL}/take-action`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(payload)
+                if (code) {
+                    // === تعديل (نفس كود repair.html) ===
+                    payload.code = code;
+                    payload.action = 'update_student';
+                    
+                    const res = await fetch(`${API}/take-action`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
                     });
-
-                    if(res.ok) {
-                        alert("✅ تم تعديل البيانات بنجاح!");
-                        location.reload(); // تحديث الصفحة لرؤية التغيير
+                    
+                    if (res.ok) {
+                        alert("✅ تم التعديل!");
+                        closeModal();
+                        loadData(); // إعادة تحميل البيانات عشان التعديل يظهر
                     } else {
                         const err = await res.json();
                         alert("خطأ: " + JSON.stringify(err));
                     }
-
                 } else {
-                    // === حالة الإنشاء (CREATE) ===
+                    // === إنشاء ===
                     payload.duration_type = document.getElementById('m-duration').value;
-                    const res = await fetch(`${API_URL}/create-code`, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify(payload)
+                    const res = await fetch(`${API}/create-code`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
                     });
                     const data = await res.json();
-                    
                     if(data.code) {
-                        closeModals();
-                        document.getElementById('new-code-display').innerText = data.code;
-                        document.getElementById('successModal').style.display = 'flex';
-                    } else {
-                        alert("فشل الإنشاء");
-                    }
+                        alert("تم إنشاء الكود: " + data.code);
+                        closeModal();
+                        loadData();
+                    } else { alert("فشل الإنشاء"); }
                 }
-            } catch(e) {
-                alert("خطأ في الاتصال: " + e);
-            } finally {
-                btn.innerText = "حفظ / تنفيذ 🚀";
+            } catch(e) { alert("خطأ اتصال: " + e); }
+            finally {
+                btn.innerText = "حفظ وتنفيذ 🚀";
                 btn.disabled = false;
             }
-        }
-
-        // --- 7. حذف الكود ---
-        async function deleteCode(code) {
-            if(!confirm("هل أنت متأكد من حذف هذا الكود؟")) return;
-            await fetch(`${API_URL}/take-action`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    admin_uuid: currentUser.uid,
-                    action: 'delete',
-                    code: code
-                })
-            });
-            alert("تم الحذف");
-            location.reload();
-        }
-
-        // --- بحث بسيط ---
-        function filterTable() {
-            const term = document.getElementById('searchInput').value.toLowerCase();
-            document.querySelectorAll('tbody tr').forEach(row => {
-                row.style.display = row.innerText.toLowerCase().includes(term) ? '' : 'none';
-            });
-        }
-        
-        function switchView(v) {
-            document.getElementById('dashboard-view').style.display = v==='dashboard'?'block':'none';
-            document.getElementById('tickets-view').style.display = v==='tickets'?'block':'none';
         }
     </script>
 </body>
