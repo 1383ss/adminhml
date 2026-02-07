@@ -426,7 +426,7 @@
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        // --- NEW FIXED SUBMIT FUNCTION ---
+        // --- FIXED SUBMIT FUNCTION ---
         async function submitSave() {
             const editId = document.getElementById('edit-mode-id').value;
             const btn = document.querySelector('#actionModal .btn-primary');
@@ -437,19 +437,14 @@
 
             if(!nameVal) return alert("الاسم مطلوب!");
 
-            // 1. تجهيز البيانات بأسماء صحيحة تطابق قاعدة البيانات
+            // تجهيز البيانات بكل الصيغ المحتملة لضمان القبول
             const payload = {
                 admin_uuid: currentUser.uid,
-                
-                // إرسال الاسم بأكتر من صيغة
-                name: nameVal,
-                student_name: nameVal, 
-                studentName: nameVal, 
-
+                name: nameVal,          
+                student_name: nameVal,  
+                studentName: nameVal,   
                 section: sectionVal,
-                
-                // إرسال السعر بصيغ مختلفة
-                price: parseFloat(priceVal) || 0,
+                price: parseFloat(priceVal) || 0,      
                 pricePaid: parseFloat(priceVal) || 0,
                 amount: parseFloat(priceVal) || 0
             };
@@ -461,7 +456,7 @@
                 if (editId) {
                     // --- وضع التعديل (UPDATE) ---
                     payload.code = editId;
-                    payload.action = 'update_student'; 
+                    payload.action = 'update_student'; // الاكشن اللي نجح في التجربة
                     
                     const res = await fetch(`${SERVER_URL}/take-action`, { 
                         method: 'POST', 
