@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أداة إصلاح البيانات</title>
+    <style>
+        body { background: #111; color: #fff; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #222; padding: 40px; border: 2px solid #ff6b00; border-radius: 10px; width: 400px; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 10px 0; background: #000; border: 1px solid #444; color: #0f0; font-family: monospace; box-sizing: border-box;}
+        button { width: 100%; padding: 15px; background: #ff6b00; border: none; font-weight: bold; cursor: pointer; color: #000; margin-top: 10px;}
+        button:hover { background: #ff8533; }
+        h2 { color: #ff6b00; margin-top: 0; }
+        #status { margin-top: 20px; font-size: 0.9em; color: #aaa; white-space: pre-wrap; text-align: left; direction: ltr; background: #000; padding: 10px; display:none;}
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🛠️ أداة التعديل المباشر</h2>
+        
+        <label>كود الطالب (الذي تريد تعديله)</label>
+        <input type="text" id="target_code" placeholder="اكتب الكود هنا...">
+        
+        <label>الاسم الجديد</label>
+        <input type="text" id="new_name" placeholder="الاسم الجديد">
+        
+        <label>السعر الجديد</label>
+        <input type="number" id="new_price" placeholder="السعر">
+
+        <button onclick="forceUpdate()">تحديث البيانات الآن 🚀</button>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        // إعدادات الأدمن (ثابتة مؤقتاً للتجربة)
+        const ADMIN_UUID = "0zb8DE5GgeYobn0wMzaXiDAPbiO2"; // Eng. Giza ID
+        const SERVER_URL = "https://admey.vercel.app/api/admin/take-action";
+
+        async function forceUpdate() {
+            const code = document.getElementById('target_code').value;
+            const name = document.getElementById('new_name').value;
+            const price = document.getElementById('new_price').value;
+            const statusDiv = document.getElementById('status');
+
+            if(!code || !name) return alert("اكتب الكود والاسم!");
+
+            statusDiv.style.display = 'block';
+            statusDiv.innerText = "جاري الاتصال بالسيرفر...";
+            statusDiv.style.color = "yellow";
+
+            const payload = {
+                admin_uuid: ADMIN_UUID,
+                action: 'update_student', // هنجرب الاسم ده الأول
+                code: code,
+                name: name,
+                student_name: name,
+                price: Number(price),
+                pricePaid: Number(price)
+            };
+
+            try {
+                const res = await fetch(SERVER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    statusDiv.innerText = "✅ تم التحديث بنجاح!\n" + JSON.stringify(data, null, 2);
+                    statusDiv.style.color = "#0f0";
+                    alert("مبروك! التعديل اشتغل. البيانات اتغيرت.");
+                } else {
+                    statusDiv.innerText = "❌ خطأ من السيرفر:\n" + JSON.stringify(data, null, 2);
+                    statusDiv.style.color = "red";
+                }
+            } catch (error) {
+                statusDiv.innerText = "⚠️ خطأ في الاتصال:\n" + error;
+                statusDiv.style.color = "orange";
+            }
+        }
+    </script>
+</body>
+</html>
