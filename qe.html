@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIZA ELITE | Engineer Zone</title>
+    <meta name="robots" content="noindex"> <title>GIZA ELITE | Engineer Zone</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,7 +17,7 @@
             /* --- Engineer Theme Palette --- */
             --bg: #0b0c10;          /* خلفية سوداء فحمية */
             --card-bg: #1f2833;     /* رمادي معدني */
-            --accent: #ff6b00;      /* برتقالي السلامة (Safety Orange) */
+            --accent: #ff6b00;      /* برتقالي السلامة */
             --accent-glow: rgba(255, 107, 0, 0.4);
             --text: #c5c6c7;        /* فضي */
             --border: #45a29e;      /* حدود سيان غامق */
@@ -87,6 +87,9 @@
         .btn-success { background: rgba(46, 204, 113, 0.1); color: var(--success); border: 1px solid var(--success); }
         .btn-success:hover { background: var(--success); color: #000; }
 
+        .btn-excel { background: rgba(39, 174, 96, 0.2); color: #2ecc71; border: 1px solid #27ae60; }
+        .btn-excel:hover { background: #27ae60; color: white; }
+
         /* --- Layout --- */
         #admin-panel { display: none; padding: 20px; max-width: 1800px; margin: auto; }
         
@@ -111,7 +114,7 @@
         .stat-num { font-size: 2.5rem; color: var(--accent); font-weight: bold; font-family: 'Fira Code', monospace; }
         .stat-lbl { color: #888; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; }
 
-        .data-container { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; }
+        .data-container { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 1100px; }
         
         th { 
@@ -139,7 +142,8 @@
 
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(8px); }
         .modal-content { 
-            background: var(--card-bg); padding: 35px; width: 95%; max-width: 500px; 
+            background: rgba(31, 40, 51, 0.95); /* Glass feel */
+            padding: 35px; width: 95%; max-width: 500px; 
             border: 2px solid var(--accent); 
             box-shadow: 0 0 50px rgba(255, 107, 0, 0.1);
             position: relative;
@@ -176,6 +180,14 @@
                 <div id="role-label" style="color: var(--accent); opacity: 0.8; margin-top: 5px; font-weight:bold;"></div>
             </div>
             <div style="display: flex; gap: 10px;">
+                <button class="btn btn-excel" onclick="exportTableToCSV('students_data.csv')">
+                    <i class="fas fa-file-excel"></i> Excel
+                </button>
+                
+                <button class="btn" style="background: #e67e22; color: white;" onclick="openCreateModal('talta')">
+                    <i class="fas fa-graduation-cap"></i> كود تالتة (رسالة)
+                </button>
+
                 <button class="btn" style="background: #9b59b6; color: white;" onclick="openCreateModal('bulk')">
                     <i class="fas fa-layer-group"></i> باقة (10 أكواد)
                 </button>
@@ -311,7 +323,7 @@
         let allTickets = [];
         let currentTicketTab = 'pending';
         let currentReplyTicketId = null;
-        let currentMode = 'normal'; // values: 'normal', 'trial', 'bulk'
+        let currentMode = 'normal';
 
         const firebaseConfigMain = { apiKey: "AIzaSyD7PB4meIc-r2ijKzheD7P868CfKdsVej0", databaseURL: "https://full-mark1-default-rtdb.firebaseio.com" };
         const mainApp = firebase.initializeApp(firebaseConfigMain); 
@@ -330,15 +342,9 @@
         const ticketApp = firebase.initializeApp(firebaseConfigTickets, "ticketsApp");
         const ticketDB = ticketApp.database();
 
-        // --- Helper: Escape HTML to prevent XSS ---
         function escapeHtml(text) {
             if (!text) return "";
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
         }
 
         async function handleLogin() {
@@ -380,22 +386,31 @@
         }
 
         async function refreshData() {
+            document.getElementById('table-body').innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px;"><i class="fas fa-circle-notch fa-spin fa-2x" style="color:var(--accent)"></i><br><small>جاري تحميل البيانات...</small></td></tr>`;
+            
             try {
                 const res = await fetch(`${SERVER_URL}/dashboard-data?admin_uuid=${currentUser.uid}&target_admin=${currentScope}`);
                 dbData = await res.json();
+                
+                dbData.codes = dbData.codes || [];
+                dbData.blocked_devices = dbData.blocked_devices || {};
+
                 renderTable();
                 updateStats(); 
                 if (currentUser.role === 'owner') { initCharts(); }
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error(e); 
+                document.getElementById('table-body').innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--danger)">فشل الاتصال بالسيرفر!</td></tr>`;
+            }
         }
 
         function openCreateModal(mode) {
             currentMode = mode;
-            
             let title = "NEW ENGINEER CODE";
             if (mode === 'trial') title = "GENERATE TRIAL";
             if (mode === 'bulk') title = "BULK GENERATE (10 CODES)";
-            
+            if (mode === 'talta') title = "كود تالتة (مع رسالة تليجرام)"; // العنوان الجديد
+
             document.getElementById('modal-title').innerText = title;
             document.getElementById('edit-mode-id').value = ""; 
             document.getElementById('duration-section').style.display = 'block';
@@ -424,9 +439,6 @@
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        // ==========================
-        //  FIXED SUBMIT FUNCTION (BULK & SINGLE)
-        // ==========================
         async function submitSave() {
             const btn = document.querySelector('#actionModal .btn-primary');
             const editId = document.getElementById('edit-mode-id').value; 
@@ -437,7 +449,6 @@
 
             if(!nameVal) return alert("الاسم مطلوب!");
 
-            // Base Payload
             const basePayload = {
                 admin_uuid: currentUser.uid,
                 section: sectionVal,
@@ -476,7 +487,6 @@
                 } else {
                     // === CREATE MODE ===
                     if (currentMode === 'bulk') {
-                        // Bulk Logic (10 Codes)
                         let generatedCodesList = [];
                         for (let i = 1; i <= 10; i++) {
                             btn.innerText = `جاري إنشاء ${i} / 10...`;
@@ -496,7 +506,6 @@
                         showSuccessCodes(generatedCodesList);
 
                     } else {
-                        // Single Mode
                         btn.innerText = "Processing...";
                         const payload = { ...basePayload, name: nameVal, student_name: nameVal, studentName: nameVal };
                         
@@ -523,7 +532,7 @@
 
         // ================= CHARTS =================
         function initCharts() {
-            if(!dbData.codes) return;
+            if(!dbData.codes || dbData.codes.length === 0) return;
             const ctx1 = document.getElementById('usersChart').getContext('2d');
             const ctx2 = document.getElementById('financeChart').getContext('2d');
             
@@ -630,7 +639,7 @@
             });
         }
 
-        // ================= TICKETS SYSTEM (SECURE) =================
+        // ================= TICKETS SYSTEM =================
         function loadTicketsSystem() {
             ticketDB.ref('support_tickets').on('value', (snapshot) => {
                 const data = snapshot.val();
@@ -662,7 +671,6 @@
 
             filtered.forEach(ticket => {
                 const date = new Date(ticket.timestamp).toLocaleString('en-GB');
-                // Security: Escape HTML
                 const safeMessage = escapeHtml(ticket.message);
                 const safeSubject = escapeHtml(ticket.subject);
                 const safeName = escapeHtml(ticket.studentName);
@@ -721,9 +729,9 @@
             if(tab === 'team') {
                 document.getElementById('team-view').style.display = 'grid';
                 const teamHTML = Object.values(ADMIN_MAP).map(a => `
-                    <div class="admin-card">
+                    <div class="admin-card" style="background:var(--card-bg); padding:20px; border-top:3px solid var(--accent); text-align:center;">
                         <i class="fas fa-user-astronaut fa-3x" style="color:var(--accent); margin-bottom:15px"></i>
-                        <h3 style="color:#fff">${a.label}</h3>
+                        <h3 style="color:#fff; margin:5px 0">${a.label}</h3>
                         <div style="color:#888;">${a.role.toUpperCase()}</div>
                     </div>`).join('');
                 document.getElementById('team-view').innerHTML = teamHTML;
@@ -749,11 +757,11 @@
             refreshData();
         }
 
-        // --- Optimized Duration Formatter ---
+        // --- Improved Duration Formatter ---
         function formatDuration(item) {
             if (item.state !== 'active') return `<span style="color:var(--danger)">EXPIRED</span>`;
             
-            // Safety check for date format
+            // Fix for NaN Date issues
             const expiryDate = new Date(item.expiry).getTime(); 
             if (isNaN(expiryDate)) return `<span style="color:#777">INVALID DATE</span>`;
 
@@ -762,10 +770,10 @@
             if (rem <= 0) return `<span style="color:var(--danger)">EXPIRED</span>`;
             
             if (item.isTrial) {
-                const min = Math.floor(rem / 60000);
-                return min < 60 
-                    ? `<span style="color:var(--warning)">${min} MIN</span>` 
-                    : `<span style="color:var(--warning)">${Math.floor(min / 60)} HR</span>`;
+                // Show Hours and Minutes for Trials
+                const hrs = Math.floor((rem % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const min = Math.floor((rem % (1000 * 60 * 60)) / (1000 * 60));
+                return `<span style="color:var(--warning)">${hrs}H ${min}M</span>`;
             }
             
             const days = Math.ceil(rem / 86400000);
@@ -779,20 +787,66 @@
         
         function copyText(t) { if(t) navigator.clipboard.writeText(t); }
         function closeModal() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
-        function copyAndClose() { copyText(document.getElementById('generated-code').innerText); closeModal(); }
+        function copyAndClose() { 
+            // Copy logic uses innerText to preserve formatting
+            copyText(document.getElementById('generated-code').innerText); 
+            closeModal(); 
+        }
         
-        // Show multiple codes
         function showSuccessCodes(codesArray) {
             closeModal();
             const container = document.getElementById('generated-code');
-            container.innerHTML = codesArray.join('<br>'); 
-            document.querySelector('#successModal h2').innerText = codesArray.length > 1 ? "10 CODES GENERATED" : "CREATED SUCCESSFULLY";
+            
+            // --- تعديل رسالة تالتة ثانوي (مع اللينكات) ---
+            const telegramMsg = `
+👇 لينك الجروب يشباب وايموجي حلو كده 🔥
+https://t.me/giza_full_mark
+
+👇 لينك القناه يشباب تحتها كده
+https://t.me/fulll_mark`;
+
+            if (currentMode === 'talta') {
+                const content = codesArray.map(code => {
+                    return `🔑 كود التفعيل: ${code}\n${telegramMsg}`;
+                }).join('\n\n-------------------------\n\n');
+                
+                container.innerText = content; // استخدام innerText للحفاظ على التنسيق
+            } else {
+                container.innerHTML = codesArray.join('<br>'); 
+            }
+            // ----------------------------------------------------
+
+            document.querySelector('#successModal h2').innerText = codesArray.length > 1 ? "CODES GENERATED" : "CREATED SUCCESSFULLY";
             document.getElementById('successModal').style.display = 'flex';
             refreshData();
         }
 
         function toggleCustomDays(v) { document.getElementById('m-days').style.display = v === 'custom' ? 'block' : 'none'; }
         function setView(v, b) { currentView = v; document.querySelectorAll('.sub-nav .nav-btn').forEach(btn => btn.classList.remove('active')); b.classList.add('active'); renderTable(); }
+
+        // --- Excel Export Function ---
+        function exportTableToCSV(filename) {
+            const rows = document.querySelectorAll("table tr");
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for Arabic support
+
+            rows.forEach(row => {
+                const rowData = [];
+                row.querySelectorAll("th, td").forEach(cell => {
+                    let text = cell.innerText.replace(/(\r\n|\n|\r)/gm, " ").trim();
+                    if(text === "Copy CodeLog OutToggle BlockDeleteEdit") text = "";
+                    rowData.push(`"${text}"`);
+                });
+                csvContent += rowData.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     </script>
 </body>
 </html>
